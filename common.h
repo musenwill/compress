@@ -24,4 +24,8 @@ typedef struct {
     int16 mode;
 } CompressionOut;
 
+int64 readData(int datasize, char* inbuf, int* inpos);
+
+void writeData(int datasize, char* out, int* outpos, int64 data);
+
 #endif

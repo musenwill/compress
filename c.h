@@ -34,6 +34,8 @@
 #define false 0
 #endif
 
+typedef int bool;
+
 #ifndef HAVE_INT8
 typedef signed char int8;   /* == 8 bits */
 typedef signed short int16; /* == 16 bits */
@@ -44,6 +46,7 @@ typedef signed int int32;   /* == 32 bits */
 typedef unsigned char uint8;   /* == 8 bits */
 typedef unsigned short uint16; /* == 16 bits */
 typedef unsigned int uint32;   /* == 32 bits */
+typedef unsigned int uint;
 #endif                         /* not HAVE_UINT8 */
 
 typedef long int int64;
