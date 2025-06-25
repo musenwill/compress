@@ -17,53 +17,39 @@ const int64 gRleMarker[] = {(int64)0,
     (int64)0xFEFEFEFEFEFEFEFE
 };
 
-static int rleNonRunsNeedSpace(CUDesc *pDesc, bool equalToMarker, int repeats)
-{
-    assert(repeats > 0 && repeats < RLE_MIN_REPEATS);
-    return equalToMarker ? (pDesc->eachValSize + 1) : (pDesc->eachValSize  * repeats);
-}
+// static int rleNonRunsNeedSpace(CUDesc *pDesc, bool equalToMarker, int repeats)
+// {
+//     assert(repeats > 0 && repeats < RLE_MIN_REPEATS);
+//     return equalToMarker ? (pDesc->eachValSize + 1) : (pDesc->eachValSize  * repeats);
+// }
 
-static int rleRunsNeedSpace(CUDesc *pDesc, int repeats)
-{
-    assert(repeats >= RLE_MIN_REPEATS && repeats <= RLE_MAX_REPEATS);
-    return (pDesc->eachValSize + (repeats < 128 ? 1 : 2) + pDesc->eachValSize);
-}
+// static int rleRunsNeedSpace(CUDesc *pDesc, int repeats)
+// {
+//     assert(repeats >= RLE_MIN_REPEATS && repeats <= RLE_MAX_REPEATS);
+//     return (pDesc->eachValSize + (repeats < 128 ? 1 : 2) + pDesc->eachValSize);
+// }
 
-static void rleWriteRuns(CUDesc *pDesc, char* outbuf, int* outpos, int64 symbol, int repeat)
+static void rleWriteRuns(CUDesc *pDesc, int64 symbol, int repeat, Buffer *pOut)
 {
-    int idx = *outpos;
-
     assert(repeat >= RLE_MIN_REPEATS && repeat <= RLE_MAX_REPEATS);
-    writeData(pDesc->eachValSize, outbuf, &idx, gRleMarker[pDesc->eachValSize]);
+    BufferWrite(pOut, pDesc->eachValSize, gRleMarker[pDesc->eachValSize]);
     if (repeat >= 128) {
-        /*
-         * it's not safe to assign by uint16 datatype because of BE/LE problem.
-         * outbuf[idx] holds the higher byte, and outbuf[idx+1] holds the lower byte.
-         */
-        *(uint8*)(outbuf + idx) = (uint8)((repeat | 0x8000) >> 8);
-        *(uint8*)(outbuf + idx + 1) = (uint8)(repeat & 0xff);
-        idx += sizeof(uint16);
+        BufferWrite(pOut, sizeof(int16), repeat);
     } else {
-        /* it's safe to convert unsigned int to uint8, becase repeat is in [0, 127] */
-        *(uint8*)(outbuf + idx) = (uint8)repeat;
-        ++idx;
+        BufferWrite(pOut, sizeof(int8), repeat);
     }
-    writeData(pDesc->eachValSize, outbuf, &idx, symbol);
-
-    assert(rleRunsNeedSpace(pDesc, repeat) == (idx - *outpos));
-    *outpos = idx;
+    BufferWrite(pOut, pDesc->eachValSize, symbol);
 }
 
-static void rleWriteNonRuns(CUDesc *pDesc, char* outbuf, int* outpos, int64 symbol, int repeat)
+static void rleWriteNonRuns(CUDesc *pDesc, int64 symbol, int repeat, Buffer *pOut)
 {
-    int idx = *outpos;
     int i;
 
     assert(repeat < RLE_MIN_REPEATS);
     if (likely(gRleMarker[pDesc->eachValSize] != symbol)) {
         // in normal case Non-Runs will be written plainly into out-buffer.
         for (i = 0; i < repeat; ++i)
-            writeData(pDesc->eachValSize, outbuf, &idx, symbol);
+            BufferWrite(pOut, pDesc->eachValSize, symbol);
     } else {
         // Special case: this symbol is the same to marker. the format is
         //      MARKER + REPEAT
@@ -72,78 +58,72 @@ static void rleWriteNonRuns(CUDesc *pDesc, char* outbuf, int* outpos, int64 symb
         //      MARKER + REPEAT + SYMBOL
         // where REPEAT is equal to or greater than RleMinRepeats.
         // it's safe to convert repeat to CHAR type.
-        writeData(pDesc->eachValSize, outbuf, &idx, symbol);
-        outbuf[idx++] = (char)repeat;
+        BufferWrite(pOut, pDesc->eachValSize, symbol);
+        BufferWrite(pOut, 1, repeat);
     }
-
-    assert(rleNonRunsNeedSpace(pDesc, (gRleMarker[pDesc->eachValSize] == symbol), repeat) == (idx - *outpos));
-    *outpos = idx;
 }
 
-int rleCompress(CUDesc *pDesc, CompressionIn *pIn, CompressionOut *pOut) {
+int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     assert(pDesc->eachValSize > 0);
     int64 data1 = 0;
     int64 data2 = 0;
-    int inpos = 0;
-    int outpos = 0;
     int count = 0;
 
-    data1 = readData(pDesc->eachValSize, pIn->buf, &inpos);
+    data1 = BufferRead(pIn, pDesc->eachValSize);
     count = 1;
-    if (likely(pIn->sz >= (2 * pDesc->eachValSize))) {
-        data2 = readData(pDesc->eachValSize, pIn->buf, &inpos);
+    if (likely(pIn->len >= (2 * pDesc->eachValSize))) {
+        data2 = BufferRead(pIn, pDesc->eachValSize);
         count = 2;
 
         // Main compression loop
         do {
             if (data1 == data2) {
                 // scan a sequence of identical block data, until another exception happens
-                while ((data1 == data2) && ((inpos + pDesc->eachValSize) <= pIn->sz) &&
+                while ((data1 == data2) && ((pIn->readPos + pDesc->eachValSize) <= pIn->len) &&
                        (count < RLE_MAX_REPEATS)) {
-                    data2 = readData(pDesc->eachValSize, pIn->buf, &inpos);
+                    data2 = BufferRead(pIn, pDesc->eachValSize);
                     ++count;
                 }
 
                 if (data1 == data2) {
                     if (count >= RLE_MIN_REPEATS)
-                        rleWriteRuns(pDesc, pOut->buf, &outpos, data1, count);
+                        rleWriteRuns(pDesc, data1, count, pOut);
                     else
-                        rleWriteNonRuns(pDesc, pOut->buf, &outpos, data1, count);
+                        rleWriteNonRuns(pDesc, data1, count, pOut);
 
                     // repeating data have been written, and then read the new data1;
                     count = 0;
-                    if ((inpos + pDesc->eachValSize) <= pIn->sz) {
-                        data1 = readData(pDesc->eachValSize, pIn->buf, &inpos);
+                    if ((pIn->readPos + pDesc->eachValSize) <= pIn->len) {
+                        data1 = BufferRead(pIn, pDesc->eachValSize);
                         count = 1;
                     }
                 } else {
                     --count;
                     assert(count > 0);
                     if (count >= RLE_MIN_REPEATS)
-                        rleWriteRuns(pDesc, pOut->buf, &outpos, data1, count);
+                        rleWriteRuns(pDesc, data1, count, pOut);
                     else
-                        rleWriteNonRuns(pDesc, pOut->buf, &outpos, data1, count);
+                        rleWriteNonRuns(pDesc, data1, count, pOut);
                     data1 = data2;
                     count = 1;
                 }
             } else {
                 assert(count == 2);
-                rleWriteNonRuns(pDesc, pOut->buf, &outpos, data1, 1);
+                rleWriteNonRuns(pDesc, data1, 1, pOut);
                 data1 = data2;
                 count = 1;
             }
-            assert(outpos <= pOut->sz);
 
             /* read the new data2 to continue to compress; */
-            if ((inpos + pDesc->eachValSize) <= pIn->sz) {
-                data2 = readData(pDesc->eachValSize, pIn->buf, &inpos);
+            if ((pIn->readPos + pDesc->eachValSize) <= pIn->len) {
+                data2 = BufferRead(pIn, pDesc->eachValSize);
                 assert(count == 1);
                 count = 2;
             }
 
             /* make sure there is no input data when count is either 1 or 0; */
             assert(count == 2 || count == 1 || count == 0);
-            assert((count >= 2) || ((inpos + pDesc->eachValSize) > pIn->sz));
+            assert((count >= 2) || ((pIn->readPos + pDesc->eachValSize) > pIn->len));
         } while (count >= 2);
     }
 
@@ -151,29 +131,23 @@ int rleCompress(CUDesc *pDesc, CompressionIn *pIn, CompressionOut *pOut) {
      * make sure all input-data are handled and compressed.
      * And at most one data is left out.
      */
-    assert(inpos == pIn->sz);
     assert(count == 0 || count == 1);
     if (count == 1)
-        rleWriteNonRuns(pDesc, pOut->buf, &outpos, data1, 1);
-    assert(outpos <= pOut->sz);
+        rleWriteNonRuns(pDesc, data1, 1, pOut);
 
-    return outpos;
+    return pOut->writePos;
 }
 
-int rleDecompress(CUDesc *pDesc, CompressionIn *pIn, CompressionOut *pOut) {
-    assert(pIn->sz >= 1);
-    int inpos = 0;
-    int outpos = 0;
+int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     int outcnt = 0;
-    char* inptr = pIn->buf;
 
     // Main decompression loop
     do {
-        int64 symbol = readData(pDesc->eachValSize, inptr, &inpos);
+        int64 symbol = BufferRead(pIn, pDesc->eachValSize);
 
         // maybe We had a marker data, check it first
         if (gRleMarker[pDesc->eachValSize] == symbol) {
-            uint8 markerCount = *(uint8*)(inptr + inpos);
+            uint8 markerCount = *(uint8*)(pIn->buf + pIn->readPos);
 
             if (markerCount >= RLE_MIN_REPEATS) {
                 // [RLE_MIN_REPEATS, RLE_MAX_REPEATS] indicates the compressed Runs data.
@@ -182,40 +156,35 @@ int rleDecompress(CUDesc *pDesc, CompressionIn *pIn, CompressionOut *pOut) {
                 // the first bit represents whether tow bytes are
                 // used to store the length info.
                 if (markerCount & 0x80) {
-                    symbolCount = ((uint16)(markerCount << 8) + *(uint8*)(inptr + inpos + 1)) & 0x7fff;
-                    inpos += sizeof(uint16);
+                    symbolCount = ((uint16)(markerCount << 8) + *(uint8*)(pIn->buf + pIn->readPos + 1)) & 0x7fff;
+                    pIn->readPos += sizeof(uint16);
                 } else {
                     symbolCount = markerCount;
-                    ++inpos;
+                    pIn->readPos += sizeof(int8);
                 }
                 assert(symbolCount >= RLE_MIN_REPEATS && symbolCount <= RLE_MAX_REPEATS);
 
-                symbol = readData(pDesc->eachValSize, inptr, &inpos);
+                symbol = BufferRead(pIn, pDesc->eachValSize);
                 for (uint16 i = 0; i < symbolCount; ++i) {
-                    writeData(pDesc->eachValSize, pOut->buf, &outpos, symbol);
-                    assert(outpos <= pOut->sz);
+                    BufferWrite(pOut, pDesc->eachValSize, symbol);
                 }
                 outcnt += symbolCount;
             } else {
                 // [1, RleMinRepeats - 1] indicates that symbol is the same to marker itself,
                 // and repeat time is markerCount.
-                ++inpos;
+                pIn->readPos += sizeof(int8);
                 assert(markerCount > 0);
                 for (uint8 i = 0; i < markerCount; ++i) {
-                    writeData(pDesc->eachValSize, pOut->buf, &outpos, symbol);
-                    assert(outpos <= pOut->sz);
+                    BufferWrite(pOut, pDesc->eachValSize, symbol);
                 }
                 outcnt += markerCount;
             }
         } else {
             // No marker, copy the plain data
-            writeData(pDesc->eachValSize, pOut->buf, &outpos, symbol);
-            assert(outpos <= pOut->sz);
+            BufferWrite(pOut, pDesc->eachValSize, symbol);
             ++outcnt;
         }
-    } while (likely((inpos + pDesc->eachValSize) <= pIn->sz));
+    } while (likely((pIn->readPos + pDesc->eachValSize) <= pIn->len));
 
-    assert(inpos == pIn->sz);
-    assert(outpos <= pOut->sz);
     return (pDesc->eachValSize * outcnt);
 }

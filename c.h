@@ -8,6 +8,8 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <assert.h>
+#include <time.h>
+#include <sys/stat.h>
 
 #define IS_LITTLE_ENDIAN (*(char*)&(int){1} == 1)
 

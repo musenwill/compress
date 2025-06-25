@@ -3,8 +3,8 @@
 
 #include "c.h"
 
-int rleCompress(CUDesc *pDesc, CompressionIn *pIn, CompressionOut *pOut);
+int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
-int rleDecompress(CUDesc *pDesc, CompressionIn *pIn, CompressionOut *pOut);
+int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 #endif
