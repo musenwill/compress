@@ -289,8 +289,8 @@ func csvCol2Column(colVals []string, colType string) Column {
 		for _, val := range colVals {
 			val = strings.ToLower(val)
 			val = strings.TrimSpace(val)
-			if val == "true" || val == "false" || val == "0" || val == "1" {
-				if val == "true " || val == "1" {
+			if val == "true" || val == "false" || val == "0" || val == "1" || val == "t" || val == "f" {
+				if val == "true " || val == "1" || val == "t" {
 					column.values = append(column.values, true)
 				} else {
 					column.values = append(column.values, false)
