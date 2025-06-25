@@ -1,5 +1,6 @@
 #include "common.h"
 #include "compress.h"
+#include "rle.h"
 
 void cleanCompressResult(CompressResult *pCmprResult) {
     for (int i = 0; i < pCmprResult->len; i++) {
@@ -125,16 +126,26 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     pDesc->smallNums = smallNums;
 }
 
-int compressFile(const char *filePath, const char *algo, const char *dataType) {
+int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
+    int ret = OK;
+
+    if (strcmp(pAlgo, "rle") == 0) {
+        ret = rleCompress(pDesc, pIn, pOut);
+    } else {
+        LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
+    }
+
+    return ret;
+}
+
+int compressFile(const char *filePath, const char *pAlgo, const char *dataType) {
     int ret = OK;
     Buffer *pOrigin = NULL;
-    int eachValSize = dataTypeSize(dataType);
     CompressResult compressResult = {0};
     CompressResult decompressResult = {0};
     Buffer *pCurBuf = NULL;
-    
 
-    ret = createBuffer(1024 * 1024 * 10, pCurBuf);
+    ret = createBuffer(1024 * 1024 * 10, &pCurBuf);
     if (ret < 0) {
         goto l_end;
     }
@@ -145,11 +156,31 @@ int compressFile(const char *filePath, const char *algo, const char *dataType) {
     }
 
     if (dataTypeIsInteger(dataType)) {
-        while (true) {
+        while (pOrigin->readPos < pOrigin->len) {
+            pCurBuf->readPos = 0;
+            pCurBuf->writePos = 0;
             CUDesc desc = {0};
+            collectIntegerCU(pOrigin, dataType, pCurBuf, &desc);
+            if (desc.count > 0) {
+                Buffer *pCompressedBuf = NULL;
+                ret = createBuffer(pCurBuf->bufSize, &pCompressedBuf);
+                if (ret < 0) {
+                    goto l_end;
+                }
+                compressResult.pBufs[compressResult.len] = pCompressedBuf;
+                compressResult.len++;
+                ret = compressCU(&desc, pCurBuf, pCompressedBuf, pAlgo);
+                if (ret < 0) {
+                    goto l_end;
+                }
+                pCompressedBuf->len = pCompressedBuf->writePos;
+                // print CUDesc
+                // statistics
+                // decompress
+            }
         }
     } else {
-        LOG_FATAL("unsupported yet");
+        LOG_FATAL("data type %s unsupported yet", dataType);
     }
 
 l_end:

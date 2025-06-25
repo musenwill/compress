@@ -1,4 +1,3 @@
-#include "common.h"
 #include "rle.h"
 
 #define RLE_MIN_REPEATS     4

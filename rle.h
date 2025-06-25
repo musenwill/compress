@@ -2,6 +2,7 @@
 #define __RLE_H___
 
 #include "c.h"
+#include "common.h"
 
 int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 

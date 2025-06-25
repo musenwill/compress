@@ -197,7 +197,7 @@ void BufferWrite(Buffer *pBuffer, int datasize, int64 data)
 
 void supportedDataType(const char *dataType) {
     static const char* gSupportedTypes[8] = {
-        "int8", "int4", "int16", "int32", "int64", "float32", "float64", "bool", "string",
+        "int8", "int16", "int32", "int64", "float32", "float64", "bool", "string",
     };
     bool support = false;
     for (int i = 0; i < sizeof(gSupportedTypes) / sizeof(gSupportedTypes[0]); i++) {
@@ -211,10 +211,9 @@ void supportedDataType(const char *dataType) {
     }
 }
 
-
 int dataTypeIsInteger(const char *dataType) {
     static const char* gIntegerTypes[4] = {
-        "int8", "int4", "int16", "int32", "int64",
+        "int8", "int16", "int32", "int64",
     };
     bool isInteger = false;
     for (int i = 0; i < sizeof(gIntegerTypes) / sizeof(gIntegerTypes[0]); i++) {
