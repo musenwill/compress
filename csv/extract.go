@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"reflect"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -89,7 +89,7 @@ func (c *Column) calDesc() {
 				sumldeltal += delta
 			} else if delta < 0 {
 				preDeltaSign = -1
-				sumldeltal += delta * -1
+				sumldeltal += (delta * -1)
 			}
 		}
 		if val < 256 && val*-1 < 256 {
@@ -105,7 +105,7 @@ func (c *Column) calDesc() {
 	c.desc.max = max
 	c.desc.sum = sum
 	c.desc.average = sum / c.desc.count
-	c.desc.attLen = int(reflect.TypeOf(val).Size())
+	c.desc.attLen = colTypeLen(c.colType)
 	c.desc.avgldeltal = sumldeltal / (c.desc.count - 1)
 	c.desc.continuity = continuity
 	c.desc.repeats = repeats
@@ -118,7 +118,11 @@ func (c *Column) print() {
 	}
 }
 
-func (c *Column) dumpFile(filePath string, isRaw bool) {
+func (c *Column) printDesc() {
+	fmt.Printf("%#v\n", c.desc)
+}
+
+func (c *Column) dumpCol(filePath string, isRaw bool) {
 	file, err := os.Create(filePath)
 	if err != nil {
 		log.Fatalf("failed create file %s, %s", filePath, err)
@@ -142,6 +146,19 @@ func (c *Column) dumpFile(filePath string, isRaw bool) {
 	}
 }
 
+func (c *Column) dumpDesc(filePath string) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Fatalf("failed create file %s, %s", filePath, err)
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	writer.WriteString(fmt.Sprintf("%#v", c.desc))
+}
+
 func colTypeSupports(colType string) {
 	supports := []string{"int8", "int16", "int32", "int64", "float32", "float64", "bool", "string"}
 	supported := false
@@ -153,6 +170,28 @@ func colTypeSupports(colType string) {
 	if !supported {
 		log.Fatalf("column type %s unsupported", colType)
 	}
+}
+
+func colTypeLen(colType string) int {
+	switch colType {
+	case "int8":
+		return 1
+	case "int16":
+		return 2
+	case "int32":
+		return 4
+	case "int64":
+		return 8
+	case "float32":
+		return 4
+	case "float64":
+		return 8
+	case "bool":
+		return 1
+	default:
+		log.Fatalf("column type %s has no fix len", colType)
+	}
+	return 0
 }
 
 func csvCol(filePath string, colIdx int) []string {
@@ -177,6 +216,9 @@ func csvCol(filePath string, colIdx int) []string {
 		}
 		if int(colIdx) >= len(record) {
 			log.Fatal("column index out of bound: ", err)
+		}
+		if len(record[colIdx]) == 0 {
+			continue
 		}
 		colVals = append(colVals, record[colIdx])
 	}
@@ -272,11 +314,32 @@ func action(c *cli.Context) {
 	filePath := c.GlobalString(csvPath.Name)
 	colIdx := c.GlobalInt(colIdx.Name)
 	colType := c.GlobalString(colType.Name)
+	isRaw := c.GlobalBoolT(isRaw.Name)
 	colTypeSupports(colType)
 
 	colVals := csvCol(filePath, int(colIdx))
 	col := csvCol2Column(colVals, colType)
 	col.calDesc()
 
-	col.print()
+	dirPath := filepath.Dir(filePath)
+	fileName := filepath.Base(filePath)
+	fileName = strings.TrimSuffix(fileName, filepath.Ext(fileName))
+
+	outPath := filepath.Join(dirPath, fileName)
+	outColFileName := ""
+	if isRaw {
+		outColFileName = fmt.Sprintf("%d.raw", colIdx)
+	} else {
+		outColFileName = fmt.Sprintf("%d.txt", colIdx)
+	}
+	outColFile := filepath.Join(outPath, outColFileName)
+	outColDesc := filepath.Join(outPath, fmt.Sprintf("%d.desc", colIdx))
+
+	err := os.MkdirAll(outPath, 0755)
+	if err != nil {
+		log.Fatalf("failed create dir %s, %s", outPath, err)
+	}
+
+	col.dumpDesc(outColDesc)
+	col.dumpCol(outColFile, isRaw)
 }
