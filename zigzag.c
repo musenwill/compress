@@ -51,18 +51,18 @@ void zigzagUT() {
     ret = zigzagCompress(&desc, pPlain, pCompressed);
     assert(ret >= 0);
     if (memcmp(compressed, pCompressed->buf, sizeof(compressed)) != 0) {
-        printf("rle expect compress result: \n");
+        printf("zigzag expect compress result: \n");
         dumpHexBuffer(compressed, sizeof(compressed));
-        printf("rle actual compress result: \n");
+        printf("zigzag actual compress result: \n");
         dumpHexBuffer(pCompressed->buf, pCompressed->len);
     }
 
     ret = zigzagDecompress(&desc, pCompressed, pDecompressed);
     assert(ret >= 0);
     if (memcmp(origin, pDecompressed->buf, sizeof(origin)) != 0) {
-        printf("rle expect decompress result: \n");
+        printf("zigzag expect decompress result: \n");
         dumpHexBuffer(origin, sizeof(origin));
-        printf("rle actual decompress result: \n");
+        printf("zigzag actual decompress result: \n");
         dumpHexBuffer(pDecompressed->buf, pDecompressed->len);
     }
 

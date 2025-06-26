@@ -23,15 +23,68 @@ int64 BufferRead(Buffer *pBuffer, int datasize)
     assert(pBuffer->readPos + datasize <= pBuffer->len);
     byte* psrc = pBuffer->buf + pBuffer->readPos;
     int64 val = 0;
-    byte *pTmp = (byte*)(&val);
 
     if (IS_LITTLE_ENDIAN) {
-        for (int i = 0; i < datasize; i++) {
-            pTmp[datasize-i-1] = psrc[i];
+        if (datasize == 1) {
+            int8 v = (int8)(*psrc);
+            val = v;
+        } else if (datasize == 2) {
+            int16 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
+            val = (int64)v;
+        } else if (datasize == 4) {
+            int32 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
+            val = (int64)v;
+        } else if (datasize == 8) {
+            int64 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
+            val = (int64)v;
+        } else {
+            byte *pTmp = (byte*)(&val);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
         }
     } else {
-        for (int i = 0; i < datasize; i++) {
-            pTmp[i] = psrc[i];
+        if (datasize == 1) {
+            int8 v = (int8)(*psrc);
+            val = v;
+        } else if (datasize == 2) {
+            int16 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
+            val = (int64)v;
+        } else if (datasize == 4) {
+            int32 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
+            val = (int64)v;
+        } else if (datasize == 8) {
+            int64 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
+            val = (int64)v;
+        } else {
+            byte *pTmp = (byte*)(&val);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
         }
     }
 

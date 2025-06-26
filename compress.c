@@ -1,6 +1,7 @@
 #include "common.h"
 #include "compress.h"
 #include "rle.h"
+#include "zigzag.h"
 
 void CompressStatsPrint(CompressStats *pStats) {
     printf("plain size:         %ld\n", pStats->plainSize);
@@ -161,6 +162,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
 
     if (strcmp(pAlgo, "rle") == 0) {
         ret = rleCompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "zigzag") == 0) {
+        ret = zigzagCompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -173,6 +176,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
 
     if (strcmp(pAlgo, "rle") == 0) {
         ret = rleDecompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "zigzag") == 0) {
+        ret = zigzagDecompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }

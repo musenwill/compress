@@ -16,6 +16,16 @@ const int64 gRleMarker[] = {(int64)0,
     (int64)0xFEFEFEFEFEFEFEFE
 };
 
+static bool isSymbolEqualsRleMarker(int64 symbol, int eachValSize) {
+    int64 marker = gRleMarker[eachValSize];
+    int64 mask = 0;
+    for (int i = 0; i < eachValSize; i++) {
+        mask |= (0xFF << (i * 8));
+    }
+    symbol &= mask;
+    return marker == symbol;
+}
+
 // static int rleNonRunsNeedSpace(CUDesc *pDesc, bool equalToMarker, int repeats)
 // {
 //     assert(repeats > 0 && repeats < RLE_MIN_REPEATS);
@@ -44,13 +54,12 @@ static void rleWriteRuns(CUDesc *pDesc, int64 symbol, int repeat, Buffer *pOut)
 
 static void rleWriteNonRuns(CUDesc *pDesc, int64 symbol, int repeat, Buffer *pOut)
 {
-    int i;
-
     assert(repeat < RLE_MIN_REPEATS);
-    if (likely(gRleMarker[pDesc->eachValSize] != symbol)) {
+    if (likely(!isSymbolEqualsRleMarker(symbol, pDesc->eachValSize))) {
         // in normal case Non-Runs will be written plainly into out-buffer.
-        for (i = 0; i < repeat; ++i)
+        for (int i = 0; i < repeat; i++) {
             BufferWrite(pOut, pDesc->eachValSize, symbol);
+        }
     } else {
         // Special case: this symbol is the same to marker. the format is
         //      MARKER + REPEAT
@@ -148,7 +157,7 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
         int64 symbol = BufferRead(pIn, pDesc->eachValSize);
 
         // maybe We had a marker data, check it first
-        if (gRleMarker[pDesc->eachValSize] == symbol) {
+        if (isSymbolEqualsRleMarker(symbol, pDesc->eachValSize)) {
             uint8 markerCount = *(uint8*)(pIn->buf + pIn->readPos);
 
             if (markerCount >= RLE_MIN_REPEATS) {
