@@ -25,7 +25,7 @@ int64 CompressResultTotalSize(CompressResult *pCmprResult) {
     int64 totalSize = 0;
     for (int i = 0; i < pCmprResult->len; i++) {
         if (NULL != pCmprResult->pBufs[i]) {
-            totalSize += pCmprResult->len;
+            totalSize += pCmprResult->pBufs[i]->len;
         }
     }
     return totalSize;
@@ -220,7 +220,6 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
                 if (ret < 0) {
                     goto l_end;
                 }
-                pCompressedBuf->len = pCompressedBuf->writePos;
             }
         }
     } else {
