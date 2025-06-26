@@ -136,6 +136,7 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     if (count == 1)
         rleWriteNonRuns(pDesc, data1, 1, pOut);
     pOut->len = pOut->writePos;
+    assert(pIn->readPos == pIn->len);
     return pOut->writePos;
 }
 
@@ -187,6 +188,8 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
         }
     } while (likely((pIn->readPos + pDesc->eachValSize) <= pIn->len));
 
+    assert(pIn->readPos == pIn->len);
+    pOut->len = pOut->writePos;
     return (pDesc->eachValSize * outcnt);
 }
 
@@ -195,24 +198,40 @@ void rleUT() {
     byte origin[256] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 0xFE, 0xFE};
     byte compressed[] = {1, 2, 2, 3, 3, 3, 0xFE, 4, 4, 0xFE, 5, 5, 0xFE, 2, 0xFE, 0x80, 0xEF, 0};
 
-    Buffer *pIn = NULL;
-    Buffer *pOut = NULL;
-    ret = createBuffer(sizeof(origin), &pIn);
+    Buffer *pPlain = NULL;
+    Buffer *pCompressed = NULL;
+    Buffer *pDecompressed = NULL;
+    ret = createBuffer(sizeof(origin), &pPlain);
     assert(ret >= 0);
-    ret = createBuffer(sizeof(compressed), &pOut);
+    ret = createBuffer(sizeof(compressed), &pCompressed);
+    assert(ret >= 0);
+    ret = createBuffer(sizeof(origin), &pDecompressed);
     assert(ret >= 0);
 
-    memcpy(pIn->buf, origin, sizeof(origin));
-    pIn->len = sizeof(origin);
+    memcpy(pPlain->buf, origin, sizeof(origin));
+    pPlain->len = sizeof(origin);
 
     CUDesc desc = {0};
     desc.eachValSize = 1;
-    ret = rleCompress(&desc, pIn, pOut);
+    ret = rleCompress(&desc, pPlain, pCompressed);
     assert(ret >= 0);
-    if (memcmp(compressed, pOut->buf, sizeof(compressed)) != 0) {
+    if (memcmp(compressed, pCompressed->buf, sizeof(compressed)) != 0) {
         printf("rle expect compress result: \n");
         dumpHexBuffer(compressed, sizeof(compressed));
         printf("rle actual compress result: \n");
-        dumpHexBuffer(pOut->buf, pOut->len);
+        dumpHexBuffer(pCompressed->buf, pCompressed->len);
     }
+
+    ret = rleDecompress(&desc, pCompressed, pDecompressed);
+    assert(ret >= 0);
+    if (memcmp(origin, pDecompressed->buf, sizeof(origin)) != 0) {
+        printf("rle expect decompress result: \n");
+        dumpHexBuffer(origin, sizeof(origin));
+        printf("rle actual decompress result: \n");
+        dumpHexBuffer(pDecompressed->buf, pDecompressed->len);
+    }
+
+    destroyBuffer(pPlain);
+    destroyBuffer(pCompressed);
+    destroyBuffer(pDecompressed);
 }

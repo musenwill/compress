@@ -3,7 +3,7 @@
 #include "rle.h"
 
 void CompressStatsPrint(CompressStats *pStats) {
-    printf("plan size:          %ld\n", pStats->plainSize);
+    printf("plain size:         %ld\n", pStats->plainSize);
     printf("compressed size:    %ld\n", pStats->compressedSize);
     printf("compress user time(us):     %ld\n", pStats->compressTimeUserUs);
     printf("compress sys time(us):      %ld\n", pStats->compressTimeSysUs);
@@ -242,7 +242,6 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
         if (ret < 0) {
             goto l_end;
         }
-        pDecompressBuf->len = pDecompressBuf->writePos;
     }
     getrusage(RUSAGE_SELF, &end);
     stats.decompressTimeSysUs = systimeus(start, end);
