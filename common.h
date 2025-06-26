@@ -61,12 +61,24 @@ static inline void print_log(enum LOG_LEVEL level, const char* filename, const c
 
 #define LOG_FATAL(...) print_log(LOG_LEVEL_FATAL, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 
+static inline int64 systimeus(struct rusage start, struct rusage end) {
+    int64 endus = end.ru_stime.tv_sec * 1000000 + end.ru_stime.tv_usec;
+    int64 startus = start.ru_stime.tv_sec * 1000000 + start.ru_stime.tv_usec;
+    return endus - startus;
+}
+
+static inline int64 usertimeus(struct rusage start, struct rusage end) {
+    int64 endus = end.ru_utime.tv_sec * 1000000 + end.ru_utime.tv_usec;
+    int64 startus = start.ru_utime.tv_sec * 1000000 + start.ru_utime.tv_usec;
+    return endus - startus;
+}
+
 typedef struct {
     int len;
     int readPos;
     int writePos;
     int bufSize;
-    char buf[0];
+    byte buf[0];
 } Buffer;
 
 typedef struct {
@@ -95,5 +107,9 @@ void supportedDataType(const char *dataType);
 int dataTypeIsInteger(const char *dataType);
 
 int dataTypeSize(const char *dataType);
+
+int CUDescDump(CUDesc *pDesc, byte *pBuf);
+
+void dumpHexBuffer(const byte *buf, int len);
 
 #endif

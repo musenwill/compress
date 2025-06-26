@@ -33,7 +33,9 @@ static void rleWriteRuns(CUDesc *pDesc, int64 symbol, int repeat, Buffer *pOut)
     assert(repeat >= RLE_MIN_REPEATS && repeat <= RLE_MAX_REPEATS);
     BufferWrite(pOut, pDesc->eachValSize, gRleMarker[pDesc->eachValSize]);
     if (repeat >= 128) {
-        BufferWrite(pOut, sizeof(int16), repeat);
+        *(uint8*)(pOut->buf + pOut->writePos) = (uint8)((repeat | 0x8000) >> 8);
+        *(uint8*)(pOut->buf + pOut->writePos + 1) = (uint8)(repeat & 0xff);
+        pOut->writePos += sizeof(int16);
     } else {
         BufferWrite(pOut, sizeof(int8), repeat);
     }
@@ -133,7 +135,7 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     assert(count == 0 || count == 1);
     if (count == 1)
         rleWriteNonRuns(pDesc, data1, 1, pOut);
-
+    pOut->len = pOut->writePos;
     return pOut->writePos;
 }
 
@@ -186,4 +188,31 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     } while (likely((pIn->readPos + pDesc->eachValSize) <= pIn->len));
 
     return (pDesc->eachValSize * outcnt);
+}
+
+void rleUT() {
+    int ret = OK;
+    byte origin[256] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 0xFE, 0xFE};
+    byte compressed[] = {1, 2, 2, 3, 3, 3, 0xFE, 4, 4, 0xFE, 5, 5, 0xFE, 2, 0xFE, 0x80, 0xEF, 0};
+
+    Buffer *pIn = NULL;
+    Buffer *pOut = NULL;
+    ret = createBuffer(sizeof(origin), &pIn);
+    assert(ret >= 0);
+    ret = createBuffer(sizeof(compressed), &pOut);
+    assert(ret >= 0);
+
+    memcpy(pIn->buf, origin, sizeof(origin));
+    pIn->len = sizeof(origin);
+
+    CUDesc desc = {0};
+    desc.eachValSize = 1;
+    ret = rleCompress(&desc, pIn, pOut);
+    assert(ret >= 0);
+    if (memcmp(compressed, pOut->buf, sizeof(compressed)) != 0) {
+        printf("rle expect compress result: \n");
+        dumpHexBuffer(compressed, sizeof(compressed));
+        printf("rle actual compress result: \n");
+        dumpHexBuffer(pOut->buf, pOut->len);
+    }
 }

@@ -21,68 +21,17 @@ void destroyBuffer(Buffer *pBuffer) {
 int64 BufferRead(Buffer *pBuffer, int datasize)
 {
     assert(pBuffer->readPos + datasize <= pBuffer->len);
-    char* psrc = pBuffer->buf + pBuffer->readPos;
-    int64 val = *(int64*)psrc;
+    byte* psrc = pBuffer->buf + pBuffer->readPos;
+    int64 val = 0;
+    byte *pTmp = (byte*)(&val);
 
     if (IS_LITTLE_ENDIAN) {
-        switch (datasize) {
-            case sizeof(char):
-                val = val & 0xFF;
-                break;
-            case sizeof(int16):
-                val = val & 0xFFFF;
-                break;
-            case sizeof(int32):
-                val = val & 0xFFFFFFFF;
-                break;
-            case sizeof(int64):
-                val = val;
-                break;
-            case 3:
-                val = val & 0xFFFFFF;
-                break;
-            case 5:
-                val = val & 0xFFFFFFFFFF;
-                break;
-            case 6:
-                val = val & 0xFFFFFFFFFFFF;
-                break;
-            case 7:
-                val = val & 0xFFFFFFFFFFFFFF;
-                break;
-            default:
-                assert(false);
-                break;
+        for (int i = 0; i < datasize; i++) {
+            pTmp[datasize-i-1] = psrc[i];
         }
     } else {
-        switch (datasize) {
-            case sizeof(char):
-                val = val >> 56;
-                break;
-            case sizeof(int16):
-                val = val >> 48;
-                break;
-            case sizeof(int32):
-                val = val >> 32;
-                break;
-            case sizeof(int64):
-                val = val;
-                break;
-            case 3:
-                val = val >> 40;
-                break;
-            case 5:
-                val = val >> 24;
-                break;
-            case 6:
-                val = val >> 16;
-                break;
-            case 7:
-                val = val >> 8;
-                break;
-            default:
-                assert(false);
-                break;
+        for (int i = 0; i < datasize; i++) {
+            pTmp[i] = psrc[i];
         }
     }
 
@@ -92,103 +41,17 @@ int64 BufferRead(Buffer *pBuffer, int datasize)
 
 void BufferWrite(Buffer *pBuffer, int datasize, int64 data)
 {
-    assert(pBuffer->writePos + datasize <= pBuffer->len);
-    char* pdst = pBuffer->buf + pBuffer->writePos;
-    char* data_pos = (char*)&data;
+    assert(pBuffer->writePos + datasize <= pBuffer->bufSize);
+    byte* pdst = pBuffer->buf + pBuffer->writePos;
+    byte *pTmp = (byte*)(&data);
 
     if (IS_LITTLE_ENDIAN) {
-        switch (datasize) {
-            case sizeof(char):
-                *(char*)pdst = (char)(data);
-                break;
-            case sizeof(int16):
-                *(int16*)pdst = (int16)(data);
-                break;
-            case sizeof(int32):
-                *(int32*)pdst = (int32)(data);
-                break;
-            case sizeof(int64):
-                *(int64*)pdst = (int64)(data);
-                break;
-            case 3:
-                *(int16*)pdst = *(int16*)data_pos;
-                pdst = pdst + 2;
-                data_pos = data_pos + 2;
-                *(char*)pdst = *data_pos;
-                break;
-            case 5:
-                *(int32*)pdst = *(int32*)data_pos;
-                pdst = pdst + 4;
-                data_pos = data_pos + 4;
-                *(char*)pdst = *data_pos;
-                break;
-            case 6:
-                *(int32*)pdst = *(int32*)data_pos;
-                pdst = pdst + 4;
-                data_pos = data_pos + 4;
-                *(int16*)pdst = *(int16*)data_pos;
-                break;
-            case 7:
-                *(int32*)pdst = *(int32*)data_pos;
-                pdst = pdst + 4;
-                data_pos = data_pos + 4;
-                *(int16*)pdst = *(int16*)data_pos;
-                pdst = pdst + 2;
-                data_pos = data_pos + 2;
-                *(char*)pdst = *data_pos;
-                break;
-            default:
-                assert(false);
-                break;
+        for (int i = 0; i < datasize; i++) {
+            pdst[datasize-i-1] = pTmp[i];
         }
     } else {
-        switch (datasize) {
-            case sizeof(char):
-                *(char*)pdst = (char)(data);
-                break;
-            case sizeof(int16):
-                *(int16*)pdst = (int16)(data);
-                break;
-            case sizeof(int32):
-                *(int32*)pdst = (int32)(data);
-                break;
-            case sizeof(int64):
-                *(int64*)pdst = (int64)(data);
-                break;
-            case 3:
-                data_pos = data_pos + 5;
-                *(int16*)pdst = *(int16*)data_pos;
-                pdst = pdst + 2;
-                data_pos = data_pos + 2;
-                *(char*)pdst = *data_pos;
-                break;
-            case 5:
-                data_pos = data_pos + 3;
-                *(int32*)pdst = *(int32*)data_pos;
-                pdst = pdst + 4;
-                data_pos = data_pos + 4;
-                *(char*)pdst = *data_pos;
-                break;
-            case 6:
-                data_pos = data_pos + 2;
-                *(int32*)pdst = *(int32*)data_pos;
-                pdst = pdst + 4;
-                data_pos = data_pos + 4;
-                *(int16*)pdst = *(int16*)data_pos;
-                break;
-            case 7:
-                data_pos = data_pos + 1;
-                *(int32*)pdst = *(int32*)data_pos;
-                pdst = pdst + 4;
-                data_pos = data_pos + 4;
-                *(int16*)pdst = *(int16*)data_pos;
-                pdst = pdst + 2;
-                data_pos = data_pos + 2;
-                *(char*)pdst = *data_pos;
-                break;
-
-            default:
-                assert(false);
+        for (int i = 0; i < datasize; i++) {
+            pdst[i] = pTmp[i];
         }
     }
 
@@ -249,4 +112,20 @@ int dataTypeSize(const char *dataType) {
     }
 
     return size;
+}
+
+int CUDescDump(CUDesc *pDesc, byte *pBuf) {
+    return sprintf((char *)pBuf, "attlen=%d, minValue=%ld, maxValue=%ld, average=%ld, sum=%ld, count=%ld, "
+        "avgldeltal=%ld, continuity=%ld, repeats=%ld, smallNums=%ld",
+        pDesc->eachValSize, pDesc->minValue, pDesc->maxValue, pDesc->average, pDesc->sum, pDesc->count,
+        pDesc->average, pDesc->continuity, pDesc->repeats, pDesc->smallNums);
+}
+
+void dumpHexBuffer(const byte *buf, int len) {
+    for (size_t i = 0; i < len; i++) {
+        printf("%02x ", buf[i]);
+        if ((i + 1) % 16 == 0)
+            printf("\n");
+    }
+    printf("\n");
 }

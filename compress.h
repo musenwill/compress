@@ -6,10 +6,21 @@
 #define COMPRESS_BATCHSIZE  60000
 
 typedef struct {
+    CUDesc descs[1024];
     Buffer *pBufs[1024];
     int len;
 } CompressResult;
 
-int readFile(const char *filePath, Buffer **ppBuffer);
+typedef struct {
+    int64 plainSize;
+    int64 compressedSize;
+
+    int64 compressTimeSysUs;
+    int64 compressTimeUserUs;
+    int64 decompressTimeSysUs;
+    int64 decompressTimeUserUs;
+} CompressStats;
+
+int compressFile(const char *filePath, const char *pAlgo, const char *dataType);
 
 #endif

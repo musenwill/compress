@@ -2,7 +2,16 @@
 #include "compress.h"
 #include "rle.h"
 
-void cleanCompressResult(CompressResult *pCmprResult) {
+void CompressStatsPrint(CompressStats *pStats) {
+    printf("plan size:          %ld\n", pStats->plainSize);
+    printf("compressed size:    %ld\n", pStats->compressedSize);
+    printf("compress user time(us):     %ld\n", pStats->compressTimeUserUs);
+    printf("compress sys time(us):      %ld\n", pStats->compressTimeSysUs);
+    printf("decompress user time(us):   %ld\n", pStats->decompressTimeUserUs);
+    printf("decompress sys time(us):    %ld\n", pStats->decompressTimeSysUs);
+}
+
+void CompressResultClean(CompressResult *pCmprResult) {
     for (int i = 0; i < pCmprResult->len; i++) {
         if (NULL != pCmprResult->pBufs[i]) {
             destroyBuffer(pCmprResult->pBufs[i]);
@@ -10,6 +19,26 @@ void cleanCompressResult(CompressResult *pCmprResult) {
         }
     }
     pCmprResult->len = 0;
+}
+
+int64 CompressResultTotalSize(CompressResult *pCmprResult) {
+    int64 totalSize = 0;
+    for (int i = 0; i < pCmprResult->len; i++) {
+        if (NULL != pCmprResult->pBufs[i]) {
+            totalSize += pCmprResult->len;
+        }
+    }
+    return totalSize;
+}
+
+void CompressResultPrint(CompressResult *pCmprResult) {
+    byte line[1024] = {0};
+    for (int i = 0; i < pCmprResult->len; i++) {
+        if (NULL != pCmprResult->pBufs[i]) {
+            CUDescDump(&pCmprResult->descs[i], line);
+            printf("%d compressedSize=%d, %s\n", i, pCmprResult->pBufs[i]->len, line);
+        }
+    }
 }
 
 int readFile(const char *filePath, Buffer **ppBuffer) {
@@ -41,6 +70,7 @@ int readFile(const char *filePath, Buffer **ppBuffer) {
         goto l_fail;
     }
     pBuffer->len = rd;
+    *ppBuffer = pBuffer;
 
     goto l_end;
 
@@ -138,12 +168,27 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
     return ret;
 }
 
+int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
+    int ret = OK;
+
+    if (strcmp(pAlgo, "rle") == 0) {
+        ret = rleDecompress(pDesc, pIn, pOut);
+    } else {
+        LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
+    }
+
+    return ret;
+}
+
 int compressFile(const char *filePath, const char *pAlgo, const char *dataType) {
     int ret = OK;
     Buffer *pOrigin = NULL;
     CompressResult compressResult = {0};
     CompressResult decompressResult = {0};
     Buffer *pCurBuf = NULL;
+    CompressStats stats = {0};
+    struct rusage start = {0};
+    struct rusage end = {0};
 
     ret = createBuffer(1024 * 1024 * 10, &pCurBuf);
     if (ret < 0) {
@@ -155,13 +200,15 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
         goto l_end;
     }
 
+    getrusage(RUSAGE_SELF, &start);
     if (dataTypeIsInteger(dataType)) {
         while (pOrigin->readPos < pOrigin->len) {
             pCurBuf->readPos = 0;
             pCurBuf->writePos = 0;
-            CUDesc desc = {0};
-            collectIntegerCU(pOrigin, dataType, pCurBuf, &desc);
-            if (desc.count > 0) {
+            CUDesc *pDesc = &compressResult.descs[compressResult.len];
+            collectIntegerCU(pOrigin, dataType, pCurBuf, pDesc);
+            pCurBuf->len = pCurBuf->writePos;
+            if (pDesc->count > 0) {
                 Buffer *pCompressedBuf = NULL;
                 ret = createBuffer(pCurBuf->bufSize, &pCompressedBuf);
                 if (ret < 0) {
@@ -169,19 +216,47 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
                 }
                 compressResult.pBufs[compressResult.len] = pCompressedBuf;
                 compressResult.len++;
-                ret = compressCU(&desc, pCurBuf, pCompressedBuf, pAlgo);
+                ret = compressCU(pDesc, pCurBuf, pCompressedBuf, pAlgo);
                 if (ret < 0) {
                     goto l_end;
                 }
                 pCompressedBuf->len = pCompressedBuf->writePos;
-                // print CUDesc
-                // statistics
-                // decompress
             }
         }
     } else {
         LOG_FATAL("data type %s unsupported yet", dataType);
     }
+    getrusage(RUSAGE_SELF, &end);
+    stats.compressTimeSysUs = systimeus(start, end);
+    stats.compressTimeUserUs = usertimeus(start, end);
+
+    getrusage(RUSAGE_SELF, &start);
+    for (int i = 0; i < compressResult.len; i++) {
+        Buffer *pDecompressBuf = NULL;
+        ret = createBuffer(pCurBuf->bufSize, &pDecompressBuf);
+        if (ret < 0) {
+            goto l_end;
+        }
+        decompressResult.pBufs[decompressResult.len] = pDecompressBuf;
+        decompressResult.len++;
+        ret = decompressCU(&compressResult.descs[i], compressResult.pBufs[i], pDecompressBuf, pAlgo);
+        if (ret < 0) {
+            goto l_end;
+        }
+        pDecompressBuf->len = pDecompressBuf->writePos;
+    }
+    getrusage(RUSAGE_SELF, &end);
+    stats.decompressTimeSysUs = systimeus(start, end);
+    stats.decompressTimeUserUs = usertimeus(start, end);
+    stats.plainSize = pOrigin->len;
+    stats.compressedSize = CompressResultTotalSize(&compressResult);
+
+    if (decompressResult.pBufs[0] != NULL) {
+        assert(memcmp(pOrigin->buf, decompressResult.pBufs[0]->buf, decompressResult.pBufs[0]->bufSize));
+    }
+
+    CompressStatsPrint(&stats);
+    CompressResultPrint(&compressResult);
 
 l_end:
     if (pCurBuf != NULL) {
@@ -190,7 +265,7 @@ l_end:
     if (pOrigin != NULL) {
         destroyBuffer(pOrigin);
     }
-    cleanCompressResult(&compressResult);
-    cleanCompressResult(&decompressResult);
+    CompressResultClean(&compressResult);
+    CompressResultClean(&decompressResult);
     return ret;
 }

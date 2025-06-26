@@ -10,6 +10,8 @@
 #include <assert.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define IS_LITTLE_ENDIAN (*(char*)&(int){1} == 1)
 
@@ -51,6 +53,7 @@ typedef unsigned int uint32;   /* == 32 bits */
 typedef unsigned int uint;
 #endif                         /* not HAVE_UINT8 */
 
+typedef unsigned char byte;
 typedef long int int64;
 typedef unsigned long int uint64;
 
