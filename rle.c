@@ -19,9 +19,11 @@ const int64 gRleMarker[] = {(int64)0,
 static bool isSymbolEqualsRleMarker(int64 symbol, int eachValSize) {
     int64 marker = gRleMarker[eachValSize];
     int64 mask = 0;
+    byte *pTmp = (byte*)(&mask);
     for (int i = 0; i < eachValSize; i++) {
-        mask |= (0xFF << (i * 8));
+        pTmp[i] = 0xFF;
     }
+
     symbol &= mask;
     return marker == symbol;
 }
