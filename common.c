@@ -167,11 +167,29 @@ int dataTypeSize(const char *dataType) {
     return size;
 }
 
+void CUDescDumpHeader() {
+    printf("%4s %16s %6s %12s %12s %12s %14s %5s %12s %12s %12s %10s %10s %10s\n",
+        "id", 
+        "compressedSize", 
+        "attlen", 
+        "minValue", 
+        "maxValue", 
+        "average", 
+        "sum", 
+        "count", 
+        "minDelta", 
+        "maxDelta", 
+        "avgldeltal", 
+        "continuity", 
+        "repeats", 
+        "smallNums");
+}
+
 int CUDescDump(CUDesc *pDesc, byte *pBuf) {
-    return sprintf((char *)pBuf, "attlen=%d, minValue=%ld, maxValue=%ld, average=%ld, sum=%ld, count=%ld, "
-        "avgldeltal=%ld, continuity=%ld, repeats=%ld, smallNums=%ld",
+    return sprintf((char *)pBuf, "%6d %12ld %12ld %12ld %14ld "
+        "%5ld %12ld %12ld %12ld %10ld %10ld %10ld",
         pDesc->eachValSize, pDesc->minValue, pDesc->maxValue, pDesc->average, pDesc->sum, pDesc->count,
-        pDesc->average, pDesc->continuity, pDesc->repeats, pDesc->smallNums);
+        pDesc->minDelta, pDesc->maxDelta, pDesc->avgldeltal, pDesc->continuity, pDesc->repeats, pDesc->smallNums);
 }
 
 void dumpHexBuffer(const byte *buf, int len) {

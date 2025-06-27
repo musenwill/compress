@@ -87,6 +87,8 @@ typedef struct {
     int64 average;
     int64 sum;
     int64 count;
+    int64 minDelta;
+    int64 maxDelta;
     int64 avgldeltal;
     int64 continuity;
     int64 repeats;
@@ -107,6 +109,8 @@ void supportedDataType(const char *dataType);
 int dataTypeIsInteger(const char *dataType);
 
 int dataTypeSize(const char *dataType);
+
+void CUDescDumpHeader();
 
 int CUDescDump(CUDesc *pDesc, byte *pBuf);
 

@@ -34,10 +34,11 @@ int64 CompressResultTotalSize(CompressResult *pCmprResult) {
 
 void CompressResultPrint(CompressResult *pCmprResult) {
     byte line[1024] = {0};
+    CUDescDumpHeader();
     for (int i = 0; i < pCmprResult->len; i++) {
         if (NULL != pCmprResult->pBufs[i]) {
             CUDescDump(&pCmprResult->descs[i], line);
-            printf("%d compressedSize=%d, %s\n", i, pCmprResult->pBufs[i]->len, line);
+            printf("%4d %16d %s\n", i, pCmprResult->pBufs[i]->len, line);
         }
     }
 }
@@ -88,7 +89,7 @@ l_end:
 }
 
 void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *pDesc) {
-    int64 min, max, pre, delta;
+    int64 min, max, pre, delta, minDelta, maxDelta;
     int64 sum = 0;
     int64 count = 0;
     int64 sumldeltal = 0;
@@ -97,6 +98,7 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     int64 smallNums = 0;
     int preDeltaSign = 0;   // 0 undefined, -1 negative, 1 positive
     int eachValSize = dataTypeSize(dataType);
+    bool hasDelta = false;
 
     for (int i = 0; i < COMPRESS_BATCHSIZE; i++) {
         if (pIn->readPos + eachValSize > pIn->len) {
@@ -121,6 +123,18 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
                 max = val;
             }
             delta = val - pre;
+            if (!hasDelta) {
+                hasDelta = true;
+                minDelta = delta;
+                maxDelta = delta;
+            } else {
+                if (delta < minDelta) {
+                    minDelta = delta;
+                }
+                if (delta > maxDelta) {
+                    maxDelta = delta;
+                }
+            }
 
             if (delta == 0) {
                 continuity++;
