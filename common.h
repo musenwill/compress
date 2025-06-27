@@ -116,4 +116,6 @@ int CUDescDump(CUDesc *pDesc, byte *pBuf);
 
 void dumpHexBuffer(const byte *buf, int len);
 
+#define COMPRESS_BATCHSIZE  60000
+
 #endif

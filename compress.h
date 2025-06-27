@@ -3,8 +3,6 @@
 
 #include "c.h"
 
-#define COMPRESS_BATCHSIZE  60000
-
 typedef struct {
     CUDesc descs[1024];
     Buffer *pBufs[1024];
