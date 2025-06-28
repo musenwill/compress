@@ -100,6 +100,8 @@ int64 BufferRead(Buffer *pBuffer, int datasize);
 
 void BufferWrite(Buffer *pBuffer, int datasize, int64 data);
 
+void BufferFinishWrite(Buffer *pBuffer);
+
 int createBuffer(int size, Buffer **ppBuffer);
 
 void destroyBuffer(Buffer *pBuffer);

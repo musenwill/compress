@@ -111,6 +111,12 @@ void BufferWrite(Buffer *pBuffer, int datasize, int64 data)
     pBuffer->writePos += datasize;
 }
 
+void BufferFinishWrite(Buffer *pBuffer) {
+    pBuffer->len = pBuffer->writePos;
+    pBuffer->writePos = 0;
+    pBuffer->readPos = 0;
+}
+
 void supportedDataType(const char *dataType) {
     static const char* gSupportedTypes[8] = {
         "int8", "int16", "int32", "int64", "float32", "float64", "bool", "string",

@@ -4,4 +4,8 @@
 #include "c.h"
 #include "common.h"
 
+int simple8bCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
+
+int simple8bDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
+
 #endif
