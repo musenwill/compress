@@ -1,6 +1,8 @@
 #ifndef __DELTA2A_H___
 #define __DELTA2A_H___
 
+// deltaA means delta2 + zigzag + simple8b
+
 #include "c.h"
 #include "common.h"
 
