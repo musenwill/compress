@@ -4,6 +4,8 @@
 #include "c.h"
 #include "common.h"
 
+int deltaCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
+int deltaDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 #endif
