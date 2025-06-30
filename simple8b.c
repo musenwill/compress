@@ -12,6 +12,11 @@ typedef struct {
     uint64 vals[COMPRESS_BATCHSIZE];
 } Simple8bArray;
 
+static inline void Simple8bArrayReadPosAdd(Simple8bArray *pArray, int delta) {
+    assert(pArray->readPos + delta <= pArray->len);
+    pArray->readPos += delta;
+}
+
 typedef uint64 (*simple8bPack)(Simple8bArray *pArray);
 
 typedef void (*simple8bUnpack)(uint64 block, Simple8bArray *pArray);
@@ -30,7 +35,7 @@ static inline uint64 packn(Simple8bArray *pArray, int selectorID, int bitWidth) 
         block |= (pArray->vals[pArray->readPos+i] << (i * bitWidth + 4));
     }
 
-    pArray->readPos += valNum;
+    Simple8bArrayReadPosAdd(pArray, valNum);
     return block;
 }
 
@@ -38,12 +43,11 @@ static inline uint64 packn(Simple8bArray *pArray, int selectorID, int bitWidth) 
 static inline uint64 pack0(Simple8bArray *pArray) {
     uint64 block = 0;
 
-    if (pArray->vals[0] == 1) {
-        byte *pTmp = (byte*)&block;
-        *pTmp |= (byte)0x10;
+    if (pArray->vals[pArray->readPos] == 1) {
+        block |= 0x10;
     }
 
-    pArray->readPos += 240;
+    Simple8bArrayReadPosAdd(pArray, 240);
     return block;
 }
 
@@ -51,12 +55,11 @@ static inline uint64 pack0(Simple8bArray *pArray) {
 static inline uint64 pack1(Simple8bArray *pArray) {
     uint64 block = 1;
 
-    if (pArray->vals[0] == 1) {
-        byte *pTmp = (byte*)&block;
-        *pTmp |= 0x10;
+    if (pArray->vals[pArray->readPos] == 1) {
+        block |= 0x10;
     }
 
-    pArray->readPos += 120;
+    Simple8bArrayReadPosAdd(pArray, 120);
     return block;
 }
 
@@ -120,47 +123,53 @@ static inline uint64 pack15(Simple8bArray *pArray) {
 static inline void unpackn(uint64 block, Simple8bArray *pArray, int bitWidth) {
     int valNum = 60 / bitWidth;
 
+    // if (IS_LITTLE_ENDIAN) {
+    //     for (int i = 0; i < valNum; i++) {
+    //         pArray->vals[pArray->writePos + i] = (block >> (i * bitWidth + 4)) & NBITS(bitWidth);
+    //     }
+    // } else {
+    //     for (int i = 0; i < valNum; i++) {
+    //         pArray->vals[pArray->writePos + i] = (block >> ((valNum - i) * bitWidth)) & NBITS(bitWidth);
+    //     }
+    // }
+
     for (int i = 0; i < valNum; i++) {
         pArray->vals[pArray->writePos + i] = (block >> (i * bitWidth + 4)) & NBITS(bitWidth);
     }
 
     pArray->writePos += valNum;
+    assert(pArray->writePos <= COMPRESS_BATCHSIZE);
 }
 
 static inline void unpack0(uint64 block, Simple8bArray *pArray) {
-    byte tmp = *(byte*)&block;
-
-    if ((tmp & 0x10) == 0x10) {
+    if ((block & 0x10) == 0x10) {
         for (int i = 0; i < 240; i++) {
             pArray->vals[pArray->writePos + i] = 1;
         }
-    } else if ((tmp & 0x10) == 0) {
+    } else {
         for (int i = 0; i < 240; i++) {
             pArray->vals[pArray->writePos + i] = 0;
         }
-    } else {
-        assert(false);
     }
 
     pArray->writePos += 240;
+    assert(pArray->writePos <= COMPRESS_BATCHSIZE);
 }
 
 static inline void unpack1(uint64 block, Simple8bArray *pArray) {
-    byte tmp = *(byte*)&block;
 
-    if ((tmp & 0x10) == 0x10) {
+    if ((block & 0x10) == 0x10) {
         for (int i = 0; i < 120; i++) {
             pArray->vals[pArray->writePos + i] = 1;
         }
-    } else if ((tmp & 0x10) == 0) {
+    } else {
         for (int i = 0; i < 120; i++) {
             pArray->vals[pArray->writePos + i] = 0;
         }
-    } else {
-        assert(false);
     }
 
     pArray->writePos += 120;
+    assert(pArray->writePos <= COMPRESS_BATCHSIZE);
 }
 
 static inline void unpack2(uint64 block, Simple8bArray *pArray) {
@@ -229,7 +238,7 @@ static Packing gSelectors[SELECTOR_NUM] = {
 	{5, pack6, unpack6},
 	{6, pack7, unpack7},
 	{7, pack8, unpack8},
-	{8, pack8, unpack9},
+	{8, pack9, unpack9},
 	{10, pack10, unpack10},
 	{12, pack11, unpack11},
 	{15, pack12, unpack12},
@@ -257,6 +266,9 @@ static inline bool canPack(Simple8bArray *pArray, int selectorID) {
 
     if (selectorID < 2) {
         uint64 runsVal = pArray->vals[pArray->readPos];
+        if (runsVal > 1) {
+            return false;
+        }
         for (int i = 0; i < valNum; i++) {
             if (pArray->vals[pArray->readPos + i] != runsVal) {
                 return false;
@@ -282,6 +294,7 @@ static void Simple8bArrayRead(Simple8bArray *pOut, CUDesc *pDesc, Buffer *pIn) {
         assert(pOut->writePos <= COMPRESS_BATCHSIZE);
     }
     pOut->len = pOut->writePos;
+    pOut->writePos = 0;
 }
 
 static void Simple8bArrayWrite(Simple8bArray *pIn, CUDesc *pDesc, Buffer *pOut) {
@@ -289,7 +302,7 @@ static void Simple8bArrayWrite(Simple8bArray *pIn, CUDesc *pDesc, Buffer *pOut) 
         BufferWrite(pOut, pDesc->eachValSize, pIn->vals[pIn->readPos + i]);
     }
     BufferFinishWrite(pOut);
-    pIn->readPos += pIn->len;
+    Simple8bArrayReadPosAdd(pIn, pIn->len);
 }
 
 int simple8bCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
@@ -324,7 +337,7 @@ int simple8bCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
             if (canPack(&array, i)) {
                 Packing *pPacker = &gSelectors[i];
                 uint64 block = pPacker->pfPack(&array);
-                BufferWrite(pOut, pDesc->eachValSize, block);
+                BufferWrite(pOut, sizeof(block), block);
                 break;
             }
         }
@@ -346,22 +359,9 @@ int simple8bDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     Simple8bArray array = {0};
     Buffer *pZigzagDecompressed = NULL;
 
-    if (pDesc->minValue < 0) {
-        ret = createBuffer(pIn->len, &pZigzagDecompressed);
-        if (ret < 0) {
-            goto l_end;
-        }
-
-        ret = zigzagDecompress(pDesc, pIn, pZigzagDecompressed);
-        if (ret < 0) {
-            goto l_end;
-        }
-        pIn = pZigzagDecompressed;
-    }
-
     while (pIn->readPos < pIn->len) {
-        uint64 block = BufferRead(pIn, pDesc->eachValSize);
-        byte header = (*(byte*)&block) & 0x0F;
+        uint64 block = BufferRead(pIn, sizeof(block));
+        byte header = block & 0x0F;
         Packing *pPacker = &gSelectors[header];
         pPacker->pfUnpack(block, &array);
     }
@@ -369,7 +369,21 @@ int simple8bDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     array.readPos = 0;
     array.writePos = 0;
 
-    Simple8bArrayWrite(&array, pDesc, pOut);
+    if (pDesc->minValue < 0) {
+        ret = createBuffer(pIn->len, &pZigzagDecompressed);
+        if (ret < 0) {
+            goto l_end;
+        }
+        Simple8bArrayWrite(&array, pDesc, pZigzagDecompressed);
+        ret = zigzagDecompress(pDesc, pZigzagDecompressed, pOut);
+        if (ret < 0) {
+            goto l_end;
+        }
+    }
+    else {
+        Simple8bArrayWrite(&array, pDesc, pOut);
+    }
+
     ret = pOut->len;
 
 l_end:
@@ -377,4 +391,68 @@ l_end:
         destroyBuffer(pZigzagDecompressed);
     }
     return ret;
+}
+
+void simple8bUTCase(int eachValSize, byte *pOrigin ,int originSize, byte *pExpect, int expectSize) {
+    int ret = OK;
+
+    Buffer *pPlain = NULL;
+    Buffer *pCompressed = NULL;
+    Buffer *pDecompressed = NULL;
+    ret = createBuffer(originSize, &pPlain);
+    assert(ret >= 0);
+    ret = createBuffer(expectSize, &pCompressed);
+    assert(ret >= 0);
+    ret = createBuffer(originSize, &pDecompressed);
+    assert(ret >= 0);
+
+    memcpy(pPlain->buf, pOrigin, originSize);
+    pPlain->len = originSize;
+
+    CUDesc desc = {0};
+    desc.eachValSize = eachValSize;
+    ret = simple8bCompress(&desc, pPlain, pCompressed);
+    assert(ret >= 0);
+    assert(pCompressed->len == expectSize);
+    if (memcmp(pExpect, pCompressed->buf, expectSize) != 0) {
+        printf("simple8b expect compress result: \n");
+        dumpHexBuffer(pExpect, expectSize);
+        printf("simple8b actual compress result: \n");
+        dumpHexBuffer(pCompressed->buf, pCompressed->len);
+    }
+
+    ret = simple8bDecompress(&desc, pCompressed, pDecompressed);
+    assert(ret >= 0);
+    assert(pDecompressed->len == originSize);
+    if (memcmp(pOrigin, pDecompressed->buf, originSize) != 0) {
+        printf("simple8b expect decompress result: \n");
+        dumpHexBuffer(pOrigin, originSize);
+        printf("simple8b actual decompress result: \n");
+        dumpHexBuffer(pDecompressed->buf, pDecompressed->len);
+    }
+
+    destroyBuffer(pPlain);
+    destroyBuffer(pCompressed);
+    destroyBuffer(pDecompressed);
+}
+
+void simple8bUT() {
+    {
+        byte origin[256] = {10, 11, 12, 13, 14, 15};
+        byte compressed[] = {0x00, 0x00, 0x00, 0x00, 0x0F, 0xED, 0xCB, 0xA5,    // 10, 11, 12, 13, 14, 15, 0x00 x 9
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,     // 0x00 * 240
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F};    // 0x00 * 1
+        simple8bUTCase(1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5,
+                         0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5,
+                         0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5,
+                         0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5, 0x00, 0x0c, 0x7a, 0xd5};
+        byte compressed[] = {0xc7, 0xad, 0x5c, 0x7a, 0xd5, 0xc7, 0xad, 0x5d, 0xc7, 0xad, 0x5c, 0x7a, 0xd5, 0xc7, 0xad, 0x5d,    // 817877 x 6
+                             0xc7, 0xad, 0x5c, 0x7a, 0xd5, 0xc7, 0xad, 0x5d, 0xc7, 0xad, 0x5c, 0x7a, 0xd5, 0xc7, 0xad, 0x5d,    // 817877 x 6
+                             0xc7, 0xad, 0x5c, 0x7a, 0xd5, 0xc7, 0xad, 0x5d,                                                    // 817877 x 3
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0xc7, 0xad, 0x5f};                                                   // 817877 x 1
+        simple8bUTCase(4, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
 }

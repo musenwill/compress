@@ -10,7 +10,7 @@ int zigzagCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     }
 
     assert(pIn->readPos == pIn->len);
-    pOut->len = pOut->writePos;
+    BufferFinishWrite(pOut);
     return OK;
 }
 
@@ -24,7 +24,7 @@ int zigzagDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     }
 
     assert(pIn->readPos == pIn->len);
-    pOut->len = pOut->writePos;
+    BufferFinishWrite(pOut);
     return OK;
 }
 

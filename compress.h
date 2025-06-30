@@ -4,8 +4,8 @@
 #include "c.h"
 
 typedef struct {
-    CUDesc descs[1024];
-    Buffer *pBufs[1024];
+    CUDesc descs[1024 * 1024];
+    Buffer *pBufs[1024 * 1024];
     int len;
 } CompressResult;
 

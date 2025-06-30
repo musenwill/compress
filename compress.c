@@ -13,14 +13,25 @@ void CompressStatsPrint(CompressStats *pStats) {
     printf("decompress sys time(us):    %ld\n", pStats->decompressTimeSysUs);
 }
 
-void CompressResultClean(CompressResult *pCmprResult) {
+int CompressResultCreate(CompressResult **pResult) {
+    CompressResult *pR = (CompressResult *)malloc(sizeof(CompressResult));
+    if (NULL == pR) {
+        LOG_ERROR("Failed malloc CompressResult");
+        return ERR_MEM;
+    }
+    memset(pR, 0, sizeof(*pR));
+    *pResult = pR;
+    return OK;
+}
+
+void CompressResultDestroy(CompressResult *pCmprResult) {
     for (int i = 0; i < pCmprResult->len; i++) {
         if (NULL != pCmprResult->pBufs[i]) {
             destroyBuffer(pCmprResult->pBufs[i]);
             pCmprResult->pBufs[i] = NULL;
         }
     }
-    pCmprResult->len = 0;
+    free(pCmprResult);
 }
 
 int64 CompressResultTotalSize(CompressResult *pCmprResult) {
@@ -87,6 +98,29 @@ l_end:
         fclose(pFile);
     }
     return ret;
+}
+
+void DecompressResultCheck(int eachValSize, CompressResult *pDecmprResult, Buffer *pOrigin) {
+    int64 decompressedSize = 0;
+    for (int i = 0; i < pDecmprResult->len; i++) {
+        decompressedSize += pDecmprResult->pBufs[i]->len;
+    }
+    if (decompressedSize != pOrigin->len) {
+        LOG_ERROR("decompressed size, exp=%ld, act=%ld", decompressedSize, pOrigin->len);
+    }
+    assert(decompressedSize == pOrigin->len);
+
+    int pos = 0;
+    for (int i = 0; i < pDecmprResult->len; i++) {
+        if (memcmp(pOrigin->buf + pos, pDecmprResult->pBufs[i]->buf, pDecmprResult->pBufs[i]->len) != 0) {
+            printf("origin data\n");
+            dumpHexBuffer(pOrigin->buf + pos, pDecmprResult->pBufs[i]->len);
+            printf("decompressed data\n");
+            dumpHexBuffer(pDecmprResult->pBufs[i]->buf, pDecmprResult->pBufs[i]->len);
+        }
+        assert(memcmp(pOrigin->buf + pos, pDecmprResult->pBufs[i]->buf, pDecmprResult->pBufs[i]->len) == 0);
+        pos += pDecmprResult->pBufs[i]->len;
+    }
 }
 
 void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *pDesc) {
@@ -207,14 +241,23 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
 int compressFile(const char *filePath, const char *pAlgo, const char *dataType) {
     int ret = OK;
     Buffer *pOrigin = NULL;
-    CompressResult compressResult = {0};
-    CompressResult decompressResult = {0};
+    CompressResult *pCompressResult = NULL;
+    CompressResult *pDecompressResult = NULL;
     Buffer *pCurBuf = NULL;
     CompressStats stats = {0};
     struct rusage start = {0};
     struct rusage end = {0};
 
-    ret = createBuffer(1024 * 1024 * 10, &pCurBuf);
+    ret = CompressResultCreate(&pCompressResult);
+    if (ret < 0) {
+        goto l_end;
+    }
+    ret = CompressResultCreate(&pDecompressResult);
+    if (ret < 0) {
+        goto l_end;
+    }
+
+    ret = createBuffer(1024 * 1024, &pCurBuf);
     if (ret < 0) {
         goto l_end;
     }
@@ -229,17 +272,17 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
         while (pOrigin->readPos < pOrigin->len) {
             pCurBuf->readPos = 0;
             pCurBuf->writePos = 0;
-            CUDesc *pDesc = &compressResult.descs[compressResult.len];
+            CUDesc *pDesc = &pCompressResult->descs[pCompressResult->len];
             collectIntegerCU(pOrigin, dataType, pCurBuf, pDesc);
-            pCurBuf->len = pCurBuf->writePos;
+            BufferFinishWrite(pCurBuf);
             if (pDesc->count > 0) {
                 Buffer *pCompressedBuf = NULL;
                 ret = createBuffer(pCurBuf->bufSize, &pCompressedBuf);
                 if (ret < 0) {
                     goto l_end;
                 }
-                compressResult.pBufs[compressResult.len] = pCompressedBuf;
-                compressResult.len++;
+                pCompressResult->pBufs[pCompressResult->len] = pCompressedBuf;
+                pCompressResult->len++;
                 ret = compressCU(pDesc, pCurBuf, pCompressedBuf, pAlgo);
                 if (ret < 0) {
                     goto l_end;
@@ -254,15 +297,15 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
     stats.compressTimeUserUs = usertimeus(start, end);
 
     getrusage(RUSAGE_SELF, &start);
-    for (int i = 0; i < compressResult.len; i++) {
+    for (int i = 0; i < pCompressResult->len; i++) {
         Buffer *pDecompressBuf = NULL;
         ret = createBuffer(pCurBuf->bufSize, &pDecompressBuf);
         if (ret < 0) {
             goto l_end;
         }
-        decompressResult.pBufs[decompressResult.len] = pDecompressBuf;
-        decompressResult.len++;
-        ret = decompressCU(&compressResult.descs[i], compressResult.pBufs[i], pDecompressBuf, pAlgo);
+        pDecompressResult->pBufs[pDecompressResult->len] = pDecompressBuf;
+        pDecompressResult->len++;
+        ret = decompressCU(&pCompressResult->descs[i], pCompressResult->pBufs[i], pDecompressBuf, pAlgo);
         if (ret < 0) {
             goto l_end;
         }
@@ -271,14 +314,11 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
     stats.decompressTimeSysUs = systimeus(start, end);
     stats.decompressTimeUserUs = usertimeus(start, end);
     stats.plainSize = pOrigin->len;
-    stats.compressedSize = CompressResultTotalSize(&compressResult);
+    stats.compressedSize = CompressResultTotalSize(pCompressResult);
 
-    if (decompressResult.pBufs[0] != NULL) {
-        assert(memcmp(pOrigin->buf, decompressResult.pBufs[0]->buf, decompressResult.pBufs[0]->bufSize));
-    }
-
+    DecompressResultCheck(dataTypeSize(dataType), pDecompressResult, pOrigin);
     CompressStatsPrint(&stats);
-    CompressResultPrint(&compressResult);
+    CompressResultPrint(pCompressResult);
 
 l_end:
     if (pCurBuf != NULL) {
@@ -287,7 +327,11 @@ l_end:
     if (pOrigin != NULL) {
         destroyBuffer(pOrigin);
     }
-    CompressResultClean(&compressResult);
-    CompressResultClean(&decompressResult);
+    if (NULL != pCompressResult) {
+        CompressResultDestroy(pCompressResult);
+    }
+    if (NULL != pDecompressResult) {
+        CompressResultDestroy(pDecompressResult);
+    }
     return ret;
 }

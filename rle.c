@@ -146,7 +146,7 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     assert(count == 0 || count == 1);
     if (count == 1)
         rleWriteNonRuns(pDesc, data1, 1, pOut);
-    pOut->len = pOut->writePos;
+    BufferFinishWrite(pOut);
     assert(pIn->readPos == pIn->len);
     return pOut->writePos;
 }
@@ -200,8 +200,55 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     } while (likely((pIn->readPos + pDesc->eachValSize) <= pIn->len));
 
     assert(pIn->readPos == pIn->len);
-    pOut->len = pOut->writePos;
+    BufferFinishWrite(pOut);
     return (pDesc->eachValSize * outcnt);
+}
+
+void rleDumpCompressed(CUDesc *pDesc, Buffer *pIn) {
+    int outcnt = 0;
+
+    do {
+        int64 symbol = BufferRead(pIn, pDesc->eachValSize);
+
+        // maybe We had a marker data, check it first
+        if (isSymbolEqualsRleMarker(symbol, pDesc->eachValSize)) {
+            uint8 markerCount = *(uint8*)(pIn->buf + pIn->readPos);
+
+            if (markerCount >= RLE_MIN_REPEATS) {
+                // [RLE_MIN_REPEATS, RLE_MAX_REPEATS] indicates the compressed Runs data.
+                uint16 symbolCount = 0;
+
+                // the first bit represents whether tow bytes are
+                // used to store the length info.
+                if (markerCount & 0x80) {
+                    symbolCount = ((uint16)(markerCount << 8) + *(uint8*)(pIn->buf + pIn->readPos + 1)) & 0x7fff;
+                    pIn->readPos += sizeof(uint16);
+                } else {
+                    symbolCount = markerCount;
+                    pIn->readPos += sizeof(int8);
+                }
+                assert(symbolCount >= RLE_MIN_REPEATS && symbolCount <= RLE_MAX_REPEATS);
+
+                symbol = BufferRead(pIn, pDesc->eachValSize);
+                printf("%5d %ld\n", symbolCount, symbol);
+                outcnt += symbolCount;
+            } else {
+                // [1, RleMinRepeats - 1] indicates that symbol is the same to marker itself,
+                // and repeat time is markerCount.
+                pIn->readPos += sizeof(int8);
+                assert(markerCount > 0);
+                printf("%5d %ld\n", markerCount, symbol);
+                outcnt += markerCount;
+            }
+        } else {
+            // No marker, copy the plain data
+            printf("%5d %ld\n", 1, symbol);
+            ++outcnt;
+        }
+    } while (likely((pIn->readPos + pDesc->eachValSize) <= pIn->len));
+
+    assert(pIn->readPos == pIn->len);
+    assert(outcnt == pDesc->count);
 }
 
 void rleUT() {
@@ -235,6 +282,7 @@ void rleUT() {
 
     ret = rleDecompress(&desc, pCompressed, pDecompressed);
     assert(ret >= 0);
+    assert(pDecompressed->len == sizeof(origin));
     if (memcmp(origin, pDecompressed->buf, sizeof(origin)) != 0) {
         printf("rle expect decompress result: \n");
         dumpHexBuffer(origin, sizeof(origin));

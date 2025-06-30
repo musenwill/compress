@@ -8,6 +8,8 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
+void rleDumpCompressed(CUDesc *pDesc, Buffer *pIn);
+
 void rleUT();
 
 #endif
