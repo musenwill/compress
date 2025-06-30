@@ -1,9 +1,7 @@
 #include "c.h"
 #include "common.h"
-#include "rle.h"
-#include "zigzag.h"
-#include "simple8b.h"
 #include "compress.h"
+#include "ut.h"
 
 void helper() {
     printf("usage: compress filepath algorithm datatype\n");
@@ -11,9 +9,7 @@ void helper() {
 
 int main(int argc, char **ppArgv) {
     if (argc == 2 && strcmp(ppArgv[1], "test") == 0) {
-        rleUT();
-        zigzagUT();
-        simple8bUT();
+        Test();
         return OK;
     }
 
