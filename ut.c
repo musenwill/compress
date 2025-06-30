@@ -1,7 +1,7 @@
 #include "rle.h"
 #include "zigzag.h"
 #include "simple8b.h"
-#include "delta.h"
+#include "deltaA.h"
 #include "ut.h"
 
 typedef int (*pfCompressFunc)(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
@@ -15,8 +15,8 @@ pfCompressFunc getCompressFunc(const char *pAlgo) {
         pf = zigzagCompress;
     } else if (strcmp(pAlgo, "simple8b") == 0) {
         pf = simple8bCompress;
-    } else if (strcmp(pAlgo, "delta") == 0) {
-        pf = deltaCompress;
+    } else if (strcmp(pAlgo, "deltaA") == 0) {
+        pf = deltaACompress;
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -33,8 +33,8 @@ pfCompressFunc getDecompressFunc(const char *pAlgo) {
         pf = zigzagDecompress;
     } else if (strcmp(pAlgo, "simple8b") == 0) {
         pf = simple8bDecompress;
-    } else if (strcmp(pAlgo, "delta") == 0) {
-        pf = deltaDecompress;
+    } else if (strcmp(pAlgo, "deltaA") == 0) {
+        pf = deltaADecompress;
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -136,6 +136,6 @@ void Test() {
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f};
-        runCase("delta", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+        runCase("deltaA", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
 }

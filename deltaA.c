@@ -1,6 +1,6 @@
 #include "zigzag.h"
 #include "simple8b.h"
-#include "delta.h"
+#include "deltaA.h"
 
 int deltaCalculate(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     int64 preVal = 0;
@@ -30,8 +30,7 @@ int deltaRecover(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     return pOut->len;
 }
 
-
-int deltaCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
+int deltaACompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     int ret = OK;
     assert(pDesc->eachValSize > 0);
     Buffer *pDeltaCalculated = NULL;
@@ -70,7 +69,7 @@ l_end:
     return ret;
 }
 
-int deltaDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
+int deltaADecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     int ret = OK;
     assert(pDesc->eachValSize > 0);
     Buffer *pSimple8bDecompressed = NULL;

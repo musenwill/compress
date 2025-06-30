@@ -3,7 +3,7 @@
 #include "rle.h"
 #include "zigzag.h"
 #include "simple8b.h"
-#include "delta.h"
+#include "deltaA.h"
 
 void CompressStatsPrint(CompressStats *pStats) {
     printf("plain size:         %ld\n", pStats->plainSize);
@@ -216,8 +216,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = zigzagCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "simple8b") == 0) {
         ret = simple8bCompress(pDesc, pIn, pOut);
-    } else if (strcmp(pAlgo, "delta") == 0) {
-        ret = deltaCompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "deltaA") == 0) {
+        ret = deltaACompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -234,8 +234,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = zigzagDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "simple8b") == 0) {
         ret = simple8bDecompress(pDesc, pIn, pOut);
-    } else if (strcmp(pAlgo, "delta") == 0) {
-        ret = deltaDecompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "deltaA") == 0) {
+        ret = deltaADecompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
