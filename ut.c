@@ -2,6 +2,7 @@
 #include "zigzag.h"
 #include "simple8b.h"
 #include "deltaA.h"
+#include "deltaB.h"
 #include "ut.h"
 
 typedef int (*pfCompressFunc)(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
@@ -17,6 +18,8 @@ pfCompressFunc getCompressFunc(const char *pAlgo) {
         pf = simple8bCompress;
     } else if (strcmp(pAlgo, "deltaA") == 0) {
         pf = deltaACompress;
+    } else if (strcmp(pAlgo, "deltaB") == 0) {
+        pf = deltaBCompress;
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -35,6 +38,8 @@ pfCompressFunc getDecompressFunc(const char *pAlgo) {
         pf = simple8bDecompress;
     } else if (strcmp(pAlgo, "deltaA") == 0) {
         pf = deltaADecompress;
+    } else if (strcmp(pAlgo, "deltaB") == 0) {
+        pf = deltaBDecompress;
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -137,5 +142,12 @@ void Test() {
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f};
         runCase("deltaA", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[256] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5};
+        byte compressed[] = {0x02, 0x02, 0x00, 0x02, 0x00, 0x00, 0x02, 0x00,
+                             0x00, 0x00, 0x02, 0xfe, 0x04, 0x00, 0x09,
+                             0xfe, 0x80, 0xf0, 0x00};
+        runCase("deltaB", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
 }
