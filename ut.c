@@ -4,6 +4,7 @@
 #include "deltaA.h"
 #include "deltaB.h"
 #include "delta2A.h"
+#include "delta2B.h"
 #include "ut.h"
 
 typedef int (*pfCompressFunc)(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
@@ -23,6 +24,8 @@ pfCompressFunc getCompressFunc(const char *pAlgo) {
         pf = deltaBCompress;
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         pf = delta2ACompress;
+    } else if (strcmp(pAlgo, "delta2B") == 0) {
+        pf = delta2BCompress;
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -45,7 +48,9 @@ pfCompressFunc getDecompressFunc(const char *pAlgo) {
         pf = deltaBDecompress;
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         pf = delta2ADecompress;
-    } else {
+    } else if (strcmp(pAlgo, "delta2B") == 0) {
+        pf = delta2BDecompress;
+    }  else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
 
@@ -76,9 +81,9 @@ void runCase(const char *pAlgo, int eachValSize, byte *pOrigin ,int originSize, 
     assert(ret >= 0);
     assert(pCompressed->len == expectSize);
     if (memcmp(pExpect, pCompressed->buf, expectSize) != 0) {
-        printf("simple8b expect compress result: \n");
+        printf("%s expect compress result: \n", pAlgo);
         dumpHexBuffer(pExpect, expectSize);
-        printf("simple8b actual compress result: \n");
+        printf("%s actual compress result: \n", pAlgo);
         dumpHexBuffer(pCompressed->buf, pCompressed->len);
     }
 
@@ -86,9 +91,9 @@ void runCase(const char *pAlgo, int eachValSize, byte *pOrigin ,int originSize, 
     assert(ret >= 0);
     assert(pDecompressed->len == originSize);
     if (memcmp(pOrigin, pDecompressed->buf, originSize) != 0) {
-        printf("simple8b expect decompress result: \n");
+        printf("%s expect decompress result: \n", pAlgo);
         dumpHexBuffer(pOrigin, originSize);
-        printf("simple8b actual decompress result: \n");
+        printf("%s actual decompress result: \n", pAlgo);
         dumpHexBuffer(pDecompressed->buf, pDecompressed->len);
     }
 
@@ -162,5 +167,12 @@ void Test() {
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f};
         runCase("delta2A", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[256] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5};
+        byte compressed[] = {0x02, 0x00, 0x01, 0x02, 0x01, 0x00, 0x02, 0x01,
+                             0x00, 0x00, 0x02, 0x01, 0x00, 0x00, 0x00, 0x09,
+                             0x0a, 0xfe, 0x80, 0xef, 0x00};
+        runCase("delta2B", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
 }

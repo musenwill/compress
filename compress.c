@@ -6,6 +6,7 @@
 #include "deltaA.h"
 #include "deltaB.h"
 #include "delta2A.h"
+#include "delta2B.h"
 
 void CompressStatsPrint(CompressStats *pStats) {
     printf("plain size:         %ld\n", pStats->plainSize);
@@ -224,6 +225,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = deltaBCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         ret = delta2ACompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "delta2B") == 0) {
+        ret = delta2BCompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -246,6 +249,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = deltaBDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         ret = delta2ADecompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "delta2B") == 0) {
+        ret = delta2BDecompress(pDesc, pIn, pOut);
     }  else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
