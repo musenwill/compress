@@ -18,9 +18,9 @@ int zigzagDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     assert(pDesc->eachValSize > 0);
 
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
-        int64 val = BufferRead(pIn, pDesc->eachValSize);
+        uint64 val = (uint64)BufferRead(pIn, pDesc->eachValSize);
         val = (val >> 1) ^ -(val & 1);
-        BufferWrite(pOut, pDesc->eachValSize, val);
+        BufferWrite(pOut, pDesc->eachValSize, (int64)val);
     }
 
     assert(pIn->readPos == pIn->len);

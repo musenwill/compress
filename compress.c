@@ -8,6 +8,7 @@
 #include "delta2A.h"
 #include "delta2B.h"
 #include "bitpacking.h"
+#include "varint.h"
 
 void CompressStatsPrint(CompressStats *pStats) {
     printf("plain size:         %ld\n", pStats->plainSize);
@@ -204,8 +205,16 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     pDesc->sum = sum;
     pDesc->minValue = min;
     pDesc->maxValue = max;
-    pDesc->average = sum / count;
-    pDesc->avgldeltal = sumldeltal / (count - 1);
+    if (count > 0) {
+        pDesc->average = sum / count;
+    } else {
+        pDesc->average = 0;
+    }
+    if (count > 1) {
+        pDesc->avgldeltal = sumldeltal / (count - 1);
+    } else {
+        pDesc->avgldeltal = 0;
+    }
     pDesc->continuity = continuity;
     pDesc->repeats = repeats;
     pDesc->smallNums = smallNums;
@@ -230,6 +239,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = delta2BCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "bitpacking") == 0) {
         ret = bitPackingCompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "varint") == 0) {
+        ret = varintCompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -256,6 +267,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = delta2BDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "bitpacking") == 0) {
         ret = bitPackingDecompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "varint") == 0) {
+        ret = varintDecompress(pDesc, pIn, pOut);
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
