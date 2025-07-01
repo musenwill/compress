@@ -5,6 +5,7 @@
 #include "deltaB.h"
 #include "delta2A.h"
 #include "delta2B.h"
+#include "bitpacking.h"
 #include "ut.h"
 
 typedef int (*pfCompressFunc)(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
@@ -26,6 +27,8 @@ pfCompressFunc getCompressFunc(const char *pAlgo) {
         pf = delta2ACompress;
     } else if (strcmp(pAlgo, "delta2B") == 0) {
         pf = delta2BCompress;
+    } else if (strcmp(pAlgo, "bitpacking") == 0) {
+        pf = bitPackingCompress;
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
@@ -50,11 +53,95 @@ pfCompressFunc getDecompressFunc(const char *pAlgo) {
         pf = delta2ADecompress;
     } else if (strcmp(pAlgo, "delta2B") == 0) {
         pf = delta2BDecompress;
+    } else if (strcmp(pAlgo, "bitpacking") == 0) {
+        pf = bitPackingDecompress;
     }  else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
 
     return pf;
+}
+
+static void collectCUDesc(Buffer *pIn, CUDesc *pDesc, int eachValSize) {
+    int64 min, max, pre, delta, minDelta, maxDelta;
+    int64 sum = 0;
+    int64 count = 0;
+    int64 sumldeltal = 0;
+    int64 continuity = 0;
+    int64 repeats = 0;
+    int64 smallNums = 0;
+    int preDeltaSign = 0;   // 0 undefined, -1 negative, 1 positive
+    bool hasDelta = false;
+
+    for (int i = 0; i < pIn->len / eachValSize; i++) {
+        if (pIn->readPos + eachValSize > pIn->len) {
+            break;
+        }
+        int64 val = BufferRead(pIn, eachValSize);
+
+        count++;
+        if (i == 0) {
+            min = val;
+            max = val;
+        } else {
+            if (val == pre) {
+                repeats++;
+            }
+
+            if (val < min) {
+                min = val;
+            }
+            if (val > max) {
+                max = val;
+            }
+            delta = val - pre;
+            if (!hasDelta) {
+                hasDelta = true;
+                minDelta = delta;
+                maxDelta = delta;
+            } else {
+                if (delta < minDelta) {
+                    minDelta = delta;
+                }
+                if (delta > maxDelta) {
+                    maxDelta = delta;
+                }
+            }
+
+            if (delta == 0) {
+                continuity++;
+                preDeltaSign = 0;
+            } else if (delta > 0 && preDeltaSign >= 0) {
+                continuity++;
+            } else if (delta < 0 && preDeltaSign <= 0) {
+                continuity++;
+            }
+            if (delta > 0) {
+                preDeltaSign = 1;
+                sumldeltal += delta;
+            } else if (delta < 0) {
+                preDeltaSign = -1;
+                sumldeltal += (delta * -1);
+            }
+        }
+        if (val < 256 && val*-1 < 256) {
+            smallNums++;
+        }
+        sum += val;
+        pre = val;
+    }
+
+    BufferFinishRead(pIn);
+    pDesc->eachValSize = eachValSize;
+    pDesc->count = count;
+    pDesc->sum = sum;
+    pDesc->minValue = min;
+    pDesc->maxValue = max;
+    pDesc->average = sum / count;
+    pDesc->avgldeltal = sumldeltal / (count - 1);
+    pDesc->continuity = continuity;
+    pDesc->repeats = repeats;
+    pDesc->smallNums = smallNums;
 }
 
 void runCase(const char *pAlgo, int eachValSize, byte *pOrigin ,int originSize, byte *pExpect, int expectSize) {
@@ -76,7 +163,7 @@ void runCase(const char *pAlgo, int eachValSize, byte *pOrigin ,int originSize, 
     pPlain->len = originSize;
 
     CUDesc desc = {0};
-    desc.eachValSize = eachValSize;
+    collectCUDesc(pPlain, &desc, eachValSize);
     ret = pfCmprFunc(&desc, pPlain, pCompressed);
     assert(ret >= 0);
     assert(pCompressed->len == expectSize);
@@ -174,5 +261,43 @@ void Test() {
                              0x00, 0x00, 0x02, 0x01, 0x00, 0x00, 0x00, 0x09,
                              0x0a, 0xfe, 0x80, 0xef, 0x00};
         runCase("delta2B", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[256] = {0};
+        byte compressed[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00};
+        runCase("bitpacking", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[256] = {1};
+        byte compressed[] = {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00};
+        runCase("bitpacking", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        byte compressed[] = {0x01, 0xff, 0x03};
+        runCase("bitpacking", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1};
+        byte compressed[] = {0x02, 0xe4, 0xe4, 0x04};
+        runCase("bitpacking", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2};
+        byte compressed[] = {0x03, 0x88, 0xc6, 0xfa, 0x88, 0xc6, 0xfa, 0x88, 0x00};
+        runCase("bitpacking", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {120, 0, 1, 2, 3, 4, 5, 6, 7, 8};
+        byte compressed[] = {0x07, 0x78, 0x40, 0x40, 0x30, 0x20, 0x14, 0x0c, 0x07, 0x04};
+        runCase("bitpacking", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
 }

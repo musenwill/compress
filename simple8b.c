@@ -2,7 +2,6 @@
 #include "simple8b.h"
 
 #define SELECTOR_NUM    (16)
-#define NBITS(bitWidth) ((0xFFFFFFFFFFFFFFFF << (bitWidth)) ^ 0xFFFFFFFFFFFFFFFF)
 #define SIMPLE8B_MAX_SUPPORT_VAL    (0x0FFFFFFFFFFFFFFFUL)
 
 typedef struct {
@@ -122,16 +121,6 @@ static inline uint64 pack15(Simple8bArray *pArray) {
 
 static inline void unpackn(uint64 block, Simple8bArray *pArray, int bitWidth) {
     int valNum = 60 / bitWidth;
-
-    // if (IS_LITTLE_ENDIAN) {
-    //     for (int i = 0; i < valNum; i++) {
-    //         pArray->vals[pArray->writePos + i] = (block >> (i * bitWidth + 4)) & NBITS(bitWidth);
-    //     }
-    // } else {
-    //     for (int i = 0; i < valNum; i++) {
-    //         pArray->vals[pArray->writePos + i] = (block >> ((valNum - i) * bitWidth)) & NBITS(bitWidth);
-    //     }
-    // }
 
     for (int i = 0; i < valNum; i++) {
         pArray->vals[pArray->writePos + i] = (block >> (i * bitWidth + 4)) & NBITS(bitWidth);

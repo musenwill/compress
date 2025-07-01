@@ -1,12 +1,13 @@
 #include "common.h"
 
 int createBuffer(int size, Buffer **ppBuffer) {
-    Buffer *pBuffer = (Buffer *)malloc(sizeof(Buffer) + size);
+    size_t mallocSize = sizeof(Buffer) + size;
+    Buffer *pBuffer = (Buffer *)malloc(mallocSize);
     if (NULL == pBuffer) {
         LOG_ERROR("Failed malloc Buffer");
         return ERR_MEM;
     }
-    memset(pBuffer, 0, sizeof(*pBuffer));
+    memset(pBuffer, 0, mallocSize);
     pBuffer->bufSize = size;
     *ppBuffer = pBuffer;
     return OK;
@@ -115,6 +116,58 @@ void BufferFinishWrite(Buffer *pBuffer) {
     pBuffer->len = pBuffer->writePos;
     pBuffer->writePos = 0;
     pBuffer->readPos = 0;
+}
+
+void BufferFinishRead(Buffer *pBuffer) {
+    pBuffer->readPos = 0;
+}
+
+void BufferWriteBits(Buffer *pBuffer, uint64 bits, int bitNum) {
+    assert(((pBuffer->writeBits + bitNum + 7) >> 3) <= pBuffer->bufSize);
+
+    int remainBits = bitNum;
+    while (remainBits > 0) {
+        byte *pByte = pBuffer->buf + (pBuffer->writeBits >> 3);
+        int offset = pBuffer->writeBits & 0x07;
+        *pByte |= (byte)(((bits >> (bitNum - remainBits)) << offset) & 0xff);
+
+        if (8 - offset < remainBits) {
+            remainBits -= (8 - offset);
+            pBuffer->writeBits += (8 - offset);
+        } else {
+            pBuffer->writeBits += remainBits;
+            remainBits = 0;
+        }
+    }
+    assert(remainBits == 0);
+}
+
+uint64 BufferReadBits(Buffer *pBuffer, int bitNum) {
+    assert(((pBuffer->readBits + bitNum + 7) >> 3) <= pBuffer->len);
+
+    uint64 val = 0;
+    int remainBits = bitNum;
+    while (remainBits > 0) {
+        byte *pByte = pBuffer->buf + (pBuffer->readBits >> 3);
+        int offset = pBuffer->readBits & 0x07;
+        val |= (((uint64)(*pByte) >> offset) & NBITS(remainBits)) << (bitNum - remainBits);
+
+        if (8 - offset < remainBits) {
+            remainBits -= (8 - offset);
+            pBuffer->readBits += (8 - offset);
+        } else {
+            pBuffer->readBits += remainBits;
+            remainBits = 0;
+        }
+    }
+    assert(remainBits == 0);
+    return val;
+}
+
+void BufferFinishWriteBits(Buffer *pBuffer) {
+    pBuffer->len = (pBuffer->writeBits + 7) >> 3;
+    pBuffer->writeBits = 0;
+    pBuffer->readBits = 0;
 }
 
 void supportedDataType(const char *dataType) {

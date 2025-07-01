@@ -73,10 +73,18 @@ static inline int64 usertimeus(struct rusage start, struct rusage end) {
     return endus - startus;
 }
 
+static inline int BIT_WIDTH(uint64 x) {
+    return x == 0? 0 : 64 - __builtin_clzll(x);
+}
+
+#define NBITS(bitWidth) ((0xFFFFFFFFFFFFFFFF << (bitWidth)) ^ 0xFFFFFFFFFFFFFFFF)
+
 typedef struct {
     int len;
     int readPos;
     int writePos;
+    int writeBits;
+    int readBits;
     int bufSize;
     byte buf[0];
 } Buffer;
@@ -101,6 +109,14 @@ int64 BufferRead(Buffer *pBuffer, int datasize);
 void BufferWrite(Buffer *pBuffer, int datasize, int64 data);
 
 void BufferFinishWrite(Buffer *pBuffer);
+
+void BufferFinishRead(Buffer *pBuffer);
+
+void BufferWriteBits(Buffer *pBuffer, uint64 bits, int bitNum);
+
+uint64 BufferReadBits(Buffer *pBuffer, int bitNum);
+
+void BufferFinishWriteBits(Buffer *pBuffer);
 
 int createBuffer(int size, Buffer **ppBuffer);
 
