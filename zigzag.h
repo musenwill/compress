@@ -8,6 +8,4 @@ int zigzagCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 int zigzagDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
-void zigzagUT();
-
 #endif
