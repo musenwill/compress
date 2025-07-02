@@ -32,13 +32,19 @@ func New() *cli.App {
 	app := cli.NewApp()
 	app.ErrWriter = os.Stdout
 	app.EnableBashCompletion = true
-	app.Name = "extractor"
-	app.Usage = "Extractor column data from csv file and write into new file"
+	app.Name = "datagen"
+	app.Usage = "column data generator, support extractor from csv file or generate by self"
 	app.Author = "musenwill"
 	app.Email = "musenwill@qq.com"
 	app.Copyright = fmt.Sprintf("Copyright © 2025 - %v musenwill. All Rights Reserved.", time.Now().Year())
-	app.Flags = []cli.Flag{csvPath, colIdx, colType, isRaw}
-	app.Action = action
+	app.Commands = []cli.Command{
+		{
+			Name:   "extract",
+			Usage:  "extract column data from csv file",
+			Flags:  []cli.Flag{csvPath, colIdx, colType, isRaw},
+			Action: extract,
+		},
+	}
 
 	return app
 }

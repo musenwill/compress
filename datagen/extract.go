@@ -310,7 +310,7 @@ func csvCol2Column(colVals []string, colType string) Column {
 	return column
 }
 
-func action(c *cli.Context) {
+func extract(c *cli.Context) {
 	filePath := c.GlobalString(csvPath.Name)
 	colIdx := c.GlobalInt(colIdx.Name)
 	colType := c.GlobalString(colType.Name)
