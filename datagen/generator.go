@@ -274,7 +274,7 @@ func cluster(c *cli.Context) error {
 			val = rand.Int63n(int64(submax - submin))
 			val += submin
 		} else {
-			val := rand.Int63n(int64(max - submax + submin - min))
+			val = rand.Int63n(int64(max - submax + submin - min))
 			if val >= (submin - min) {
 				val += (min + submax - submin)
 			} else {
