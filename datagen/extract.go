@@ -310,11 +310,11 @@ func csvCol2Column(colVals []string, colType string) Column {
 	return column
 }
 
-func extract(c *cli.Context) {
-	filePath := c.GlobalString(csvPath.Name)
-	colIdx := c.GlobalInt(colIdx.Name)
-	colType := c.GlobalString(colType.Name)
-	isRaw := c.GlobalBoolT(isRaw.Name)
+func extract(c *cli.Context) error {
+	filePath := c.String(csvPath.Name)
+	colIdx := c.Int(colIdx.Name)
+	colType := c.String(colType.Name)
+	isRaw := c.BoolT(isRaw.Name)
 	colTypeSupports(colType)
 
 	colVals := csvCol(filePath, int(colIdx))
@@ -342,4 +342,5 @@ func extract(c *cli.Context) {
 
 	col.dumpDesc(outColDesc)
 	col.dumpCol(outColFile, isRaw)
+	return nil
 }
