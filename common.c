@@ -19,6 +19,7 @@ void destroyBuffer(Buffer *pBuffer) {
     }
 }
 
+// must read as signed value
 int64 BufferRead(Buffer *pBuffer, int datasize)
 {
     assert(pBuffer->readPos + datasize <= pBuffer->len);
