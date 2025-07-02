@@ -5,12 +5,14 @@
 #include "simple8b.h"
 #include "deltaA.h"
 #include "deltaB.h"
+#include "deltaC.h"
 #include "delta2A.h"
 #include "delta2B.h"
 #include "bitpacking.h"
 #include "varint.h"
 
 void CompressStatsPrint(CompressStats *pStats) {
+    printf("compress rate:      %.2f\n", (float)(pStats->plainSize) / (float)(pStats->compressedSize));
     printf("plain size:         %ld\n", pStats->plainSize);
     printf("compressed size:    %ld\n", pStats->compressedSize);
     printf("compress user time(us):     %ld\n", pStats->compressTimeUserUs);
@@ -215,6 +217,8 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     } else {
         pDesc->avgldeltal = 0;
     }
+    pDesc->minDelta = minDelta;
+    pDesc->maxDelta = maxDelta;
     pDesc->continuity = continuity;
     pDesc->repeats = repeats;
     pDesc->smallNums = smallNums;
@@ -233,6 +237,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = deltaACompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "deltaB") == 0) {
         ret = deltaBCompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "deltaC") == 0) {
+        ret = deltaCCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         ret = delta2ACompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2B") == 0) {
@@ -261,6 +267,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = deltaADecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "deltaB") == 0) {
         ret = deltaBDecompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "deltaC") == 0) {
+        ret = deltaCDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         ret = delta2ADecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2B") == 0) {

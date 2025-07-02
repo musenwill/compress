@@ -91,6 +91,7 @@ int64 BufferRead(Buffer *pBuffer, int datasize)
     }
 
     pBuffer->readPos += datasize;
+    pBuffer->readBits = pBuffer->readPos * 8;
     return val;
 }
 
@@ -111,6 +112,7 @@ void BufferWrite(Buffer *pBuffer, int datasize, int64 data)
     }
 
     pBuffer->writePos += datasize;
+    pBuffer->writeBits = pBuffer->writePos * 8;
 }
 
 void BufferFinishWrite(Buffer *pBuffer) {

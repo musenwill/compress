@@ -3,6 +3,7 @@
 #include "simple8b.h"
 #include "deltaA.h"
 #include "deltaB.h"
+#include "deltaC.h"
 #include "delta2A.h"
 #include "delta2B.h"
 #include "bitpacking.h"
@@ -24,6 +25,8 @@ pfCompressFunc getCompressFunc(const char *pAlgo) {
         pf = deltaACompress;
     } else if (strcmp(pAlgo, "deltaB") == 0) {
         pf = deltaBCompress;
+    } else if (strcmp(pAlgo, "deltaC") == 0) {
+        pf = deltaCCompress;
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         pf = delta2ACompress;
     } else if (strcmp(pAlgo, "delta2B") == 0) {
@@ -52,7 +55,9 @@ pfCompressFunc getDecompressFunc(const char *pAlgo) {
         pf = deltaADecompress;
     } else if (strcmp(pAlgo, "deltaB") == 0) {
         pf = deltaBDecompress;
-    } else if (strcmp(pAlgo, "delta2A") == 0) {
+    } else if (strcmp(pAlgo, "deltaC") == 0) {
+        pf = deltaCDecompress;
+    }  else if (strcmp(pAlgo, "delta2A") == 0) {
         pf = delta2ADecompress;
     } else if (strcmp(pAlgo, "delta2B") == 0) {
         pf = delta2BDecompress;
@@ -152,6 +157,8 @@ static void collectCUDesc(Buffer *pIn, CUDesc *pDesc, int eachValSize) {
     } else {
         pDesc->avgldeltal = 0;
     }
+    pDesc->minDelta = minDelta;
+    pDesc->maxDelta = maxDelta;
     pDesc->continuity = continuity;
     pDesc->repeats = repeats;
     pDesc->smallNums = smallNums;
@@ -264,6 +271,11 @@ void Test() {
                              0x00, 0x00, 0x02, 0xfe, 0x04, 0x00, 0x09,
                              0xfe, 0x80, 0xf0, 0x00};
         runCase("deltaB", 1, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5};
+        byte compressed[] = {0x01, 0x01, 0x25, 0x02};
+        runCase("deltaC", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
     {
         byte origin[256] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5};
