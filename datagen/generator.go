@@ -254,7 +254,7 @@ func cluster(c *cli.Context) error {
 	if submin >= submax {
 		return fmt.Errorf("submin value %d expect smaller than submax value %d", submin, submax)
 	}
-	if subnum >= num {
+	if subnum > num {
 		return fmt.Errorf("subnum %d expect smaller than num %d", subnum, num)
 	}
 	if submin < min {

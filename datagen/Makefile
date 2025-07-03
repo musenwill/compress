@@ -12,6 +12,7 @@ generate: build
 	./datagen --out=../dataset/gen/7.raw series --num=1000000 --start=1 --func=linear --arg=16
 	./datagen --out=../dataset/gen/8.raw series --num=1000000 --start=1 --func=square
 	./datagen --out=../dataset/gen/9.raw cluster --num=1000000 --min=0 --max=72057594037927900 --subnum=900000 --submin=10 --submax=127
+	./datagen --out=../dataset/gen/10.raw cluster --num=1000000 --min=0 --max=72057594037927900 --subnum=1000000 --submin=0 --submax=127
 
 clean:
 	rm -rf datagen
