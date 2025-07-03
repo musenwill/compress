@@ -5,27 +5,27 @@
 
 // different m_eachValSize, different marker used, just only repeating 0xFE.
 // m_eachValSize is the index of this array.
-const int64 gRleMarker[] = {(int64)0,
-    (int64)0x00000000000000FE,
-    (int64)0x000000000000FEFE,
-    (int64)0x0000000000FEFEFE,
-    (int64)0x00000000FEFEFEFE,
-    (int64)0x000000FEFEFEFEFE,
-    (int64)0x0000FEFEFEFEFEFE,
-    (int64)0x00FEFEFEFEFEFEFE,
-    (int64)0xFEFEFEFEFEFEFEFE
+const uint64 gRleMarker[] = {(uint64)0,
+    (uint64)0x00000000000000FE,
+    (uint64)0x000000000000FEFE,
+    (uint64)0x0000000000FEFEFE,
+    (uint64)0x00000000FEFEFEFE,
+    (uint64)0x000000FEFEFEFEFE,
+    (uint64)0x0000FEFEFEFEFEFE,
+    (uint64)0x00FEFEFEFEFEFEFE,
+    (uint64)0xFEFEFEFEFEFEFEFE
 };
 
-static bool isSymbolEqualsRleMarker(int64 symbol, int eachValSize) {
-    int64 marker = gRleMarker[eachValSize];
-    int64 mask = 0;
-    byte *pTmp = (byte*)(&mask);
-    for (int i = 0; i < eachValSize; i++) {
-        pTmp[i] = 0xFF;
-    }
+static bool isSymbolEqualsRleMarker(uint64 symbol, int eachValSize) {
+    return symbol == gRleMarker[eachValSize];
+    // int64 mask = 0;
+    // byte *pTmp = (byte*)(&mask);
+    // for (int i = 0; i < eachValSize; i++) {
+    //     pTmp[i] = 0xFF;
+    // }
 
-    symbol &= mask;
-    return marker == symbol;
+    // symbol &= mask;
+    // return marker == symbol;
 }
 
 // static int rleNonRunsNeedSpace(CUDesc *pDesc, bool equalToMarker, int repeats)
@@ -77,14 +77,14 @@ static void rleWriteNonRuns(CUDesc *pDesc, int64 symbol, int repeat, Buffer *pOu
 
 int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     assert(pDesc->eachValSize > 0);
-    int64 data1 = 0;
-    int64 data2 = 0;
+    uint64 data1 = 0;
+    uint64 data2 = 0;
     int count = 0;
 
-    data1 = BufferRead(pIn, pDesc->eachValSize);
+    data1 = BufferReadUnsigned(pIn, pDesc->eachValSize);
     count = 1;
     if (likely(pIn->len >= (2 * pDesc->eachValSize))) {
-        data2 = BufferRead(pIn, pDesc->eachValSize);
+        data2 = BufferReadUnsigned(pIn, pDesc->eachValSize);
         count = 2;
 
         // Main compression loop
@@ -93,7 +93,7 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
                 // scan a sequence of identical block data, until another exception happens
                 while ((data1 == data2) && ((pIn->readPos + pDesc->eachValSize) <= pIn->len) &&
                        (count < RLE_MAX_REPEATS)) {
-                    data2 = BufferRead(pIn, pDesc->eachValSize);
+                    data2 = BufferReadUnsigned(pIn, pDesc->eachValSize);
                     ++count;
                 }
 
@@ -106,7 +106,7 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
                     // repeating data have been written, and then read the new data1;
                     count = 0;
                     if ((pIn->readPos + pDesc->eachValSize) <= pIn->len) {
-                        data1 = BufferRead(pIn, pDesc->eachValSize);
+                        data1 = BufferReadUnsigned(pIn, pDesc->eachValSize);
                         count = 1;
                     }
                 } else {
@@ -128,7 +128,7 @@ int rleCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
 
             /* read the new data2 to continue to compress; */
             if ((pIn->readPos + pDesc->eachValSize) <= pIn->len) {
-                data2 = BufferRead(pIn, pDesc->eachValSize);
+                data2 = BufferReadUnsigned(pIn, pDesc->eachValSize);
                 assert(count == 1);
                 count = 2;
             }
@@ -156,7 +156,7 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
 
     // Main decompression loop
     do {
-        int64 symbol = BufferRead(pIn, pDesc->eachValSize);
+        uint64 symbol = BufferReadUnsigned(pIn, pDesc->eachValSize);
 
         // maybe We had a marker data, check it first
         if (isSymbolEqualsRleMarker(symbol, pDesc->eachValSize)) {
@@ -177,7 +177,7 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
                 }
                 assert(symbolCount >= RLE_MIN_REPEATS && symbolCount <= RLE_MAX_REPEATS);
 
-                symbol = BufferRead(pIn, pDesc->eachValSize);
+                symbol = BufferReadUnsigned(pIn, pDesc->eachValSize);
                 for (uint16 i = 0; i < symbolCount; ++i) {
                     BufferWrite(pOut, pDesc->eachValSize, symbol);
                 }
@@ -208,7 +208,7 @@ void rleDumpCompressed(CUDesc *pDesc, Buffer *pIn) {
     int outcnt = 0;
 
     do {
-        int64 symbol = BufferRead(pIn, pDesc->eachValSize);
+        uint64 symbol = BufferReadUnsigned(pIn, pDesc->eachValSize);
 
         // maybe We had a marker data, check it first
         if (isSymbolEqualsRleMarker(symbol, pDesc->eachValSize)) {
@@ -229,7 +229,7 @@ void rleDumpCompressed(CUDesc *pDesc, Buffer *pIn) {
                 }
                 assert(symbolCount >= RLE_MIN_REPEATS && symbolCount <= RLE_MAX_REPEATS);
 
-                symbol = BufferRead(pIn, pDesc->eachValSize);
+                symbol = BufferReadUnsigned(pIn, pDesc->eachValSize);
                 printf("%5d %ld\n", symbolCount, symbol);
                 outcnt += symbolCount;
             } else {

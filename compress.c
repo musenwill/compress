@@ -114,7 +114,7 @@ void DecompressResultCheck(int eachValSize, CompressResult *pDecmprResult, Buffe
         decompressedSize += pDecmprResult->pBufs[i]->len;
     }
     if (decompressedSize != pOrigin->len) {
-        LOG_ERROR("decompressed size, exp=%ld, act=%ld", decompressedSize, pOrigin->len);
+        LOG_ERROR("decompressed size, exp=%ld, act=%ld", pOrigin->len, decompressedSize);
     }
     assert(decompressedSize == pOrigin->len);
 
@@ -147,7 +147,7 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
         if (pIn->readPos + eachValSize > pIn->len) {
             break;
         }
-        int64 val = BufferRead(pIn, eachValSize);
+        int64 val = BufferReadSigned(pIn, eachValSize);
         BufferWrite(pOut, eachValSize, val);
 
         count++;

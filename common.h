@@ -74,7 +74,7 @@ static inline int64 usertimeus(struct rusage start, struct rusage end) {
 }
 
 static inline int BIT_WIDTH(uint64 x) {
-    return x == 0? 0 : 64 - __builtin_clzll(x);
+    return x == 0? 1 : 64 - __builtin_clzll(x);
 }
 
 #define NBITS(bitWidth) ((0xFFFFFFFFFFFFFFFF << (bitWidth)) ^ 0xFFFFFFFFFFFFFFFF)
@@ -104,9 +104,11 @@ typedef struct {
     int eachValSize;
 } CUDesc;
 
-int64 BufferRead(Buffer *pBuffer, int datasize);
+int64 BufferReadSigned(Buffer *pBuffer, int datasize);
 
-void BufferWrite(Buffer *pBuffer, int datasize, int64 data);
+uint64 BufferReadUnsigned(Buffer *pBuffer, int datasize);
+
+void BufferWrite(Buffer *pBuffer, int datasize, uint64 data);
 
 void BufferFinishWrite(Buffer *pBuffer);
 

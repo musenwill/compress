@@ -21,7 +21,7 @@ static uint64 varintReadVal(Buffer *pIn) {
     byte b = 0;
     int readBits = 0;
     do {
-        b = BufferRead(pIn, sizeof(b));
+        b = (byte)BufferReadUnsigned(pIn, sizeof(b));
         val |= ((uint64)(b & 0x7f) << readBits);
         readBits += 7;
     } while (b & 0x80);
@@ -47,7 +47,7 @@ int varintCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     }
 
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
-        uint64 val = (uint64)BufferRead(pIn, pDesc->eachValSize);
+        uint64 val = BufferReadUnsigned(pIn, pDesc->eachValSize);
         int bitWidth = BIT_WIDTH(val);
         varintWriteVal(val, bitWidth, pOut);
     }

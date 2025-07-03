@@ -277,7 +277,7 @@ static inline bool canPack(Simple8bArray *pArray, int selectorID) {
 
 static void Simple8bArrayRead(Simple8bArray *pOut, CUDesc *pDesc, Buffer *pIn) {
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
-        uint64 val = (uint64)BufferRead(pIn, pDesc->eachValSize);
+        uint64 val = BufferReadUnsigned(pIn, pDesc->eachValSize);
         assert(val <= SIMPLE8B_MAX_SUPPORT_VAL);
         pOut->vals[pOut->writePos++] = val;
         assert(pOut->writePos <= COMPRESS_BATCHSIZE);
@@ -349,7 +349,7 @@ int simple8bDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     Buffer *pZigzagDecompressed = NULL;
 
     while (pIn->readPos < pIn->len) {
-        uint64 block = BufferRead(pIn, sizeof(block));
+        uint64 block = BufferReadUnsigned(pIn, sizeof(block));
         byte header = block & 0x0F;
         Packing *pPacker = &gSelectors[header];
         pPacker->pfUnpack(block, &array);

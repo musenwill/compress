@@ -19,8 +19,7 @@ void destroyBuffer(Buffer *pBuffer) {
     }
 }
 
-// must read as signed value
-int64 BufferRead(Buffer *pBuffer, int datasize)
+int64 BufferReadSigned(Buffer *pBuffer, int datasize)
 {
     assert(pBuffer->readPos + datasize <= pBuffer->len);
     byte* psrc = pBuffer->buf + pBuffer->readPos;
@@ -52,10 +51,7 @@ int64 BufferRead(Buffer *pBuffer, int datasize)
             }
             val = (int64)v;
         } else {
-            byte *pTmp = (byte*)(&val);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
-            }
+            LOG_FATAL("datasize %d unsupported", datasize);
         }
     } else {
         if (datasize == 1) {
@@ -83,10 +79,7 @@ int64 BufferRead(Buffer *pBuffer, int datasize)
             }
             val = (int64)v;
         } else {
-            byte *pTmp = (byte*)(&val);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[i] = psrc[i];
-            }
+            LOG_FATAL("datasize %d unsupported", datasize);
         }
     }
 
@@ -95,7 +88,76 @@ int64 BufferRead(Buffer *pBuffer, int datasize)
     return val;
 }
 
-void BufferWrite(Buffer *pBuffer, int datasize, int64 data)
+uint64 BufferReadUnsigned(Buffer *pBuffer, int datasize)
+{
+    assert(pBuffer->readPos + datasize <= pBuffer->len);
+    byte* psrc = pBuffer->buf + pBuffer->readPos;
+    uint64 val = 0;
+
+    if (IS_LITTLE_ENDIAN) {
+        if (datasize == 1) {
+            uint8 v = (uint8)(*psrc);
+            val = v;
+        } else if (datasize == 2) {
+            uint16 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
+            val = (uint64)v;
+        } else if (datasize == 4) {
+            uint32 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
+            val = (uint64)v;
+        } else if (datasize == 8) {
+            uint64 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[datasize-i-1] = psrc[i];
+            }
+            val = (uint64)v;
+        } else {
+            LOG_FATAL("datasize %d unsupported", datasize);
+        }
+    } else {
+        if (datasize == 1) {
+            uint8 v = (uint8)(*psrc);
+            val = (uint64)v;
+        } else if (datasize == 2) {
+            uint16 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
+            val = (uint64)v;
+        } else if (datasize == 4) {
+            uint32 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
+            val = (uint64)v;
+        } else if (datasize == 8) {
+            uint64 v = 0;
+            byte *pTmp = (byte*)(&v);
+            for (int i = 0; i < datasize; i++) {
+                pTmp[i] = psrc[i];
+            }
+            val = (uint64)v;
+        } else {
+            LOG_FATAL("datasize %d unsupported", datasize);
+        }
+    }
+
+    pBuffer->readPos += datasize;
+    pBuffer->readBits = pBuffer->readPos * 8;
+    return val;
+}
+
+void BufferWrite(Buffer *pBuffer, int datasize, uint64 data)
 {
     assert(pBuffer->writePos + datasize <= pBuffer->bufSize);
     byte* pdst = pBuffer->buf + pBuffer->writePos;

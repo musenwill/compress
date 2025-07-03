@@ -87,7 +87,7 @@ static void collectCUDesc(Buffer *pIn, CUDesc *pDesc, int eachValSize) {
         if (pIn->readPos + eachValSize > pIn->len) {
             break;
         }
-        int64 val = BufferRead(pIn, eachValSize);
+        int64 val = BufferReadSigned(pIn, eachValSize);
 
         count++;
         if (i == 0) {
@@ -376,5 +376,14 @@ void Test() {
                              0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01,
                              0x01};
         runCase("varint", 8, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
+        byte origin[] = {0x66, 0x07, 0x90, 0x33, 0x9b, 0x52, 0xa8, 0x00, 
+                         0x76, 0xbf, 0xb5, 0xb2, 0xc0, 0x92, 0xf6, 0x56};
+        byte compressed[] = {0xcc, 0x01, 0x0e, 0xdf, 0x01, 0x66, 0xc9, 0x01, 
+                             0xa4, 0x01, 0xaf, 0x01, 0x00, 0xec, 0x01, 0x81, 
+                             0x01, 0x95, 0x01, 0x9b, 0x01, 0x7f, 0xdb, 0x01, 
+                             0x13, 0xac, 0x01};
+        runCase("varint", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
 }

@@ -19,7 +19,7 @@ int deltaCCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
         goto l_end;
     }
 
-    int64 val = BufferRead(pDeltaCalculated, pDesc->eachValSize);
+    int64 val = BufferReadSigned(pDeltaCalculated, pDesc->eachValSize);
     BufferWrite(pOut, pDesc->eachValSize, val);
     CUDesc bitPackingDesc = {0};
     bitPackingDesc.eachValSize = pDesc->eachValSize;
@@ -48,7 +48,7 @@ int deltaCDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
         goto l_end;
     }
 
-    int64 val = BufferRead(pIn, pDesc->eachValSize);
+    int64 val = BufferReadSigned(pIn, pDesc->eachValSize);
     BufferWrite(pBitPackingDecompressed, pDesc->eachValSize, val);
 
     CUDesc bitPackingDesc = {0};

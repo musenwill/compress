@@ -7,7 +7,7 @@ int delta2Calculate(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     int64 preDelta = 0;
 
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
-        int64 val = BufferRead(pIn, pDesc->eachValSize);
+        int64 val = BufferReadSigned(pIn, pDesc->eachValSize);
         int64 delta = val - preVal;
         int64 delta2 = delta - preDelta;
         preDelta = delta;
@@ -24,7 +24,7 @@ int delta2Recover(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     int64 preDelta = 0;
 
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
-        int64 delta2 = BufferRead(pIn, pDesc->eachValSize);
+        int64 delta2 = BufferReadSigned(pIn, pDesc->eachValSize);
         int64 delta = preDelta + delta2;
         int64 val = preVal + delta;
         preDelta = delta;

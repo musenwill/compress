@@ -43,8 +43,8 @@ int bitPackingCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
 
     BufferWriteBits(pOut, (uint64)bitWidth, 8);     // writer 1 byte header, mark bitwidth
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
-        int64 val = BufferRead(pIn, pDesc->eachValSize);
-        BufferWriteBits(pOut, (uint64)val, bitWidth);
+        uint64 val = BufferReadUnsigned(pIn, pDesc->eachValSize);
+        BufferWriteBits(pOut, val, bitWidth);
     }
     assert(pIn->readPos == pIn->len);
     BufferFinishWriteBits(pOut);
