@@ -359,7 +359,7 @@ int simple8bDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     array.writePos = 0;
 
     if (pDesc->minValue < 0) {
-        ret = createBuffer(pIn->len, &pZigzagDecompressed);
+        ret = createBuffer(pOut->bufSize, &pZigzagDecompressed);
         if (ret < 0) {
             goto l_end;
         }
