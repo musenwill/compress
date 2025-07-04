@@ -1,16 +1,26 @@
 实现各类列存压缩算法并进行测评对比，评估压缩性能和压缩效果。
 
+## 压缩算法
+实现的压缩算法包括如下:
+* rle
+* simple8b (zigzag + simple8b)
+* bitpacking (zigzag + bitpacking)
+* varint (zigzag + varint)
+* deltaA=(delta + zigzag + simple8b)
+* deltaB=(delta + zigzag + rle)
+* deltaC=(delta + zigzag + bitpacking)
+* delta2A=(delta2 + zigzag + simple8b)
+* delta2B=(delta2 + zigzag + rle)
+
 ## 测试数据集
-测试数据集为从网络下载的真实时序数据，包括 timescaledb 提供的数据集和阿里天池数据集。这些数据集通过 csv 目录下的 go 语言工具从原始 csv 文件中提取各列的数据并保存于 dataset 目录下。
+参见 [dataset/README.md](dataset/README.md) 文件
 
-dataset 目录中，一个子目录下的文件都是从一个 csv 文件中提取出来的。比如 turorial_bitcoin_sample 目录下的文件都是从 turorial_bitcoin_sample.csv 中提取的，文件名与 csv 列序号对应。比如：
-```
-1.desc 为 csv 中第 1 列的统计特征描述，包括 min、max、sum、count 之类；
-1.txt 为 csv 中第 1 列数据的文本格式;
-1.raw 为 csv 中第 1 列数据的二进制格式，二进制数据的位宽由 1.desc 中 attLen 描述；
-```
-
-## 测试方式
+## 测试策略
 1. 模拟 CU 6w 行数据，在对数据集进行压缩时，以 6w 条数据分批压缩；
 2. 收集压缩解压所需时间、收集压缩前后的压缩比；
 3. 同一数据集采用各种不同压缩算法进行压缩测试；
+
+## 使用方式
+1. 根目录下执行 make 编译，得到可执行文件 compress
+2. `compress test` 执行 UT
+3. `compress filepath algorithm datatype` 执行对二进制文件的压缩
