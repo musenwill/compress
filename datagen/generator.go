@@ -167,7 +167,7 @@ func repeat(c *cli.Context) error {
 	min := c.Int64(minFlag.Name)
 	max := c.Int64(maxFlag.Name)
 	repeat := c.Int(repeatFlag.Name)
-	median := (max - min) / 2
+	repeatVal := c.Int64(repeatValFlag.Name)
 
 	if len(outFile) <= 0 {
 		return fmt.Errorf("output file required")
@@ -186,7 +186,7 @@ func repeat(c *cli.Context) error {
 		var val int64
 		coin := rand.Int31n(int32(num))
 		if coin < int32(repeat) {
-			val = median
+			val = repeatVal
 		} else {
 			val = rand.Int63n(int64(max - min))
 			val += min

@@ -57,6 +57,12 @@ var repeatFlag = cli.IntFlag{
 	Required: true,
 }
 
+var repeatValFlag = cli.Int64Flag{
+	Name:     "repeatVal",
+	Usage:    "repeat value",
+	Required: true,
+}
+
 var startFlag = cli.Int64Flag{
 	Name:     "start",
 	Usage:    "series start",
@@ -120,7 +126,7 @@ func New() *cli.App {
 		{
 			Name:   "repeat",
 			Usage:  "generate values with many repeats",
-			Flags:  []cli.Flag{numFlag, minFlag, maxFlag, repeatFlag},
+			Flags:  []cli.Flag{numFlag, minFlag, maxFlag, repeatFlag, repeatValFlag},
 			Action: repeat,
 		},
 		{
