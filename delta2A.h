@@ -14,4 +14,6 @@ int delta2ACompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 int delta2ADecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
+float32 delta2AEstimate(CUDesc *pDesc);
+
 #endif

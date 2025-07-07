@@ -8,4 +8,6 @@ int varintCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 int varintDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
+float32 varintEstimate(CUDesc *pDesc);
+
 #endif

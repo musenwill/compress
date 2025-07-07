@@ -103,6 +103,7 @@ typedef struct {
     int64 repeats;
     int64 smallNums;
     int eachValSize;
+    int compressType;
 } CUDesc;
 
 int64 BufferReadSigned(Buffer *pBuffer, int datasize);

@@ -8,6 +8,7 @@
 #include "delta2B.h"
 #include "bitpacking.h"
 #include "varint.h"
+#include "compress.h"
 #include "ut.h"
 
 typedef int (*pfCompressFunc)(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
@@ -210,6 +211,78 @@ void runCase(const char *pAlgo, int eachValSize, byte *pOrigin ,int originSize, 
 }
 
 void Test() {
+    {
+        byte origin[] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5};
+        CUDesc desc = {0};
+        Buffer *pIn = NULL;
+        Buffer *pOut = NULL;
+        int ret = createBuffer(sizeof(origin), &pIn);
+        assert(ret >= 0);
+        ret = createBuffer(sizeof(origin), &pOut);
+        assert(ret >= 0);
+        memcpy(pIn->buf, origin, sizeof(origin));
+        pIn->len = sizeof(origin);
+
+        collectIntegerCU(pIn, "int8", pOut, &desc);
+        assert(desc.repeats == 14);
+
+        destroyBuffer(pIn);
+        destroyBuffer(pOut);
+    }
+    {
+        byte origin[] = {1, 1, 1, 1, 1};
+        CUDesc desc = {0};
+        Buffer *pIn = NULL;
+        Buffer *pOut = NULL;
+        int ret = createBuffer(sizeof(origin), &pIn);
+        assert(ret >= 0);
+        ret = createBuffer(sizeof(origin), &pOut);
+        assert(ret >= 0);
+        memcpy(pIn->buf, origin, sizeof(origin));
+        pIn->len = sizeof(origin);
+
+        collectIntegerCU(pIn, "int8", pOut, &desc);
+        assert(desc.repeats == 5);
+
+        destroyBuffer(pIn);
+        destroyBuffer(pOut);
+    }
+    {
+        byte origin[] = {1, 1, 1, 1, 1, 2};
+        CUDesc desc = {0};
+        Buffer *pIn = NULL;
+        Buffer *pOut = NULL;
+        int ret = createBuffer(sizeof(origin), &pIn);
+        assert(ret >= 0);
+        ret = createBuffer(sizeof(origin), &pOut);
+        assert(ret >= 0);
+        memcpy(pIn->buf, origin, sizeof(origin));
+        pIn->len = sizeof(origin);
+
+        collectIntegerCU(pIn, "int8", pOut, &desc);
+        assert(desc.repeats == 5);
+
+        destroyBuffer(pIn);
+        destroyBuffer(pOut);
+    }
+    {
+        byte origin[] = {1, 1, 1, 2, 1, 1};
+        CUDesc desc = {0};
+        Buffer *pIn = NULL;
+        Buffer *pOut = NULL;
+        int ret = createBuffer(sizeof(origin), &pIn);
+        assert(ret >= 0);
+        ret = createBuffer(sizeof(origin), &pOut);
+        assert(ret >= 0);
+        memcpy(pIn->buf, origin, sizeof(origin));
+        pIn->len = sizeof(origin);
+
+        collectIntegerCU(pIn, "int8", pOut, &desc);
+        assert(desc.repeats == 5);
+
+        destroyBuffer(pIn);
+        destroyBuffer(pOut);
+    }
     {
         byte origin[256] = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 0xFE, 0xFE};
         byte compressed[] = {1, 2, 2, 3, 3, 3, 0xFE, 4, 4, 0xFE, 5, 5, 0xFE, 2, 0xFE, 0x80, 0xEF, 0};

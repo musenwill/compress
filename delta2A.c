@@ -1,3 +1,4 @@
+
 #include "zigzag.h"
 #include "simple8b.h"
 #include "delta2A.h"
@@ -108,4 +109,9 @@ l_end:
         destroyBuffer(pZigzagDecompressed);
     }
     return ret;
+}
+
+float32 delta2AEstimate(CUDesc *pDesc) {
+    return (float32)SIMPLE8B_PACKING_BITS * (float32)pDesc->eachValSize / 
+            (8.0 * BIT_WIDTH(2 * pDesc->avgAbsDelta2));
 }

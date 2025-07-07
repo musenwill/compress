@@ -94,3 +94,8 @@ l_end:
     }
     return ret;
 }
+
+float32 bitPackingEstimate(CUDesc *pDesc) {
+    float32 bitwidth = (float32)calculateBitWidth(pDesc);
+    return 8.0 * pDesc->eachValSize / bitwidth;
+}

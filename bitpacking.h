@@ -9,4 +9,6 @@ int bitPackingCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 int bitPackingDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
+float32 bitPackingEstimate(CUDesc *pDesc);
+
 #endif

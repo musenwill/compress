@@ -1,7 +1,7 @@
 #include "zigzag.h"
 #include "simple8b.h"
 
-#define SELECTOR_NUM    (16)
+#define SIMPLE8B_SELECTOR_NUM       (16)
 #define SIMPLE8B_MAX_SUPPORT_VAL    (0x0FFFFFFFFFFFFFFFUL)
 
 typedef struct {
@@ -28,7 +28,7 @@ typedef struct {
 
 static inline uint64 packn(Simple8bArray *pArray, int selectorID, int bitWidth) {
     uint64 block = selectorID;
-    int valNum = 60 / bitWidth;
+    int valNum = SIMPLE8B_PACKING_BITS / bitWidth;
 
     for (int i = 0; i < valNum; i++) {
         block |= (pArray->vals[pArray->readPos+i] << (i * bitWidth + 4));
@@ -120,7 +120,7 @@ static inline uint64 pack15(Simple8bArray *pArray) {
 }
 
 static inline void unpackn(uint64 block, Simple8bArray *pArray, int bitWidth) {
-    int valNum = 60 / bitWidth;
+    int valNum = SIMPLE8B_PACKING_BITS / bitWidth;
 
     for (int i = 0; i < valNum; i++) {
         pArray->vals[pArray->writePos + i] = (block >> (i * bitWidth + 4)) & NBITS(bitWidth);
@@ -217,7 +217,7 @@ static inline void unpack15(uint64 block, Simple8bArray *pArray) {
     unpackn(block, pArray, 60);
 }
 
-static Packing gSelectors[SELECTOR_NUM] = {
+static Packing gSelectors[SIMPLE8B_SELECTOR_NUM] = {
 	{0, pack0, unpack0},
 	{0, pack1, unpack1},
 	{1, pack2, unpack2},
@@ -237,7 +237,7 @@ static Packing gSelectors[SELECTOR_NUM] = {
 };
 
 static inline bool canPack(Simple8bArray *pArray, int selectorID) {
-    assert(selectorID >= 0 && selectorID < SELECTOR_NUM);
+    assert(selectorID >= 0 && selectorID < SIMPLE8B_SELECTOR_NUM);
     Packing *pPacker = &gSelectors[selectorID];
     int valNum;
 
@@ -246,7 +246,7 @@ static inline bool canPack(Simple8bArray *pArray, int selectorID) {
     } else if (selectorID == 1) {
         valNum = 120;
     } else {
-        valNum = 60 / pPacker->bitWidth;
+        valNum = SIMPLE8B_PACKING_BITS / pPacker->bitWidth;
     }
 
     if (pArray->len - pArray->readPos < valNum) {
@@ -322,7 +322,7 @@ int simple8bCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     Simple8bArrayRead(&array, pDesc, pIn);
     while (array.readPos < array.len) {
         int i;
-        for (i = 0; i < SELECTOR_NUM; i++) {
+        for (i = 0; i < SIMPLE8B_SELECTOR_NUM; i++) {
             if (canPack(&array, i)) {
                 Packing *pPacker = &gSelectors[i];
                 uint64 block = pPacker->pfPack(&array);
@@ -380,4 +380,16 @@ l_end:
         destroyBuffer(pZigzagDecompressed);
     }
     return ret;
+}
+
+float32 simple8bEstimate(CUDesc *pDesc) {
+    float32 bitwidth;
+
+    if (pDesc->minValue < 0) {
+        bitwidth = (float32)BIT_WIDTH(pDesc->average);
+    } else {
+        bitwidth = (float32)BIT_WIDTH(2 * labs(pDesc->average));
+    }
+
+    return pDesc->eachValSize * SIMPLE8B_PACKING_BITS / ( 8.0 * bitwidth);
 }

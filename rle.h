@@ -10,4 +10,6 @@ int rleDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut);
 
 void rleDumpCompressed(CUDesc *pDesc, Buffer *pIn);
 
+float32 rleEstimate(CUDesc *pDesc);
+
 #endif

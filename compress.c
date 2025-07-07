@@ -139,6 +139,7 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     int64 sumAbsDelta2 = 0;
     int64 continuity = 0;
     int64 repeats = 0;
+    int64 repeatLen = 0;
     int64 smallNums = 0;
     int64 preDelta = 0;
     int preDeltaSign = 0;   // 0 undefined, -1 negative, 1 positive
@@ -158,7 +159,12 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
             max = val;
         } else {
             if (val == pre) {
-                repeats++;
+                repeatLen++;
+            } else {
+                if (repeatLen > 0) {
+                    repeats += (repeatLen + 1);
+                }
+                repeatLen = 0;
             }
 
             if (val < min) {
@@ -210,6 +216,10 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
         sum += val;
         pre = val;
     }
+    if (repeatLen > 0) {
+        repeats += (repeatLen + 1);
+    }
+    repeatLen = 0;
 
     pDesc->eachValSize = eachValSize;
     pDesc->count = count;
@@ -235,11 +245,78 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     pDesc->smallNums = smallNums;
 }
 
+CompressType chooseBestCompressAlgo(CUDesc *pDesc) {
+    float32 maxCompressRate = 0;
+    CompressType bestCompressType = 0;
+
+    float32 rleRate = rleEstimate(pDesc);
+    float32 simple8bRate = simple8bEstimate(pDesc);
+    float32 bitPackingRate = bitPackingEstimate(pDesc);
+    float32 varintRate = varintEstimate(pDesc);
+    float32 deltaARate = deltaAEstimate(pDesc);
+    float32 delta2ARate = delta2AEstimate(pDesc);
+
+    printf("estimates: rle=%.2f, simple8b=%.2f, bitpacking=%.2f, varint=%.2f, delta=%.2f delta2=%.2f\n",
+            rleRate, simple8bRate, bitPackingRate, varintRate, deltaARate, delta2ARate);
+
+    if (rleRate > maxCompressRate) {
+        maxCompressRate = rleRate;
+        bestCompressType = CMPR_RLE;
+    }
+    if (simple8bRate > maxCompressRate) {
+        maxCompressRate = simple8bRate;
+        bestCompressType = CMPR_SIMPLE8B;
+    }
+    if (bitPackingRate > maxCompressRate) {
+        maxCompressRate = bitPackingRate;
+        bestCompressType = CMPR_BIT_PACKING;
+    }
+    if (varintRate > maxCompressRate) {
+        maxCompressRate = varintRate;
+        bestCompressType = CMPR_VARINT;
+    }
+    if (deltaARate > maxCompressRate) {
+        maxCompressRate = deltaARate;
+        bestCompressType = CMPR_DELTA;
+    }
+    if (delta2ARate > maxCompressRate) {
+        maxCompressRate = delta2ARate;
+        bestCompressType = CMPR_DELTA2;
+    }
+    printf("the best compress type is: %s, rate=%.2f\n", 
+            CompressTypeName(bestCompressType), maxCompressRate);
+
+    return bestCompressType;
+}
+
 int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
     int ret = OK;
 
     if (NULL == pAlgo) {
-        
+        CompressType cmprType = chooseBestCompressAlgo(pDesc);
+        switch (cmprType) {
+        case CMPR_RLE:
+            ret = rleCompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_SIMPLE8B:
+            ret = simple8bCompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_BIT_PACKING:
+            ret = bitPackingCompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_VARINT:
+            ret = varintCompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_DELTA:
+            ret = deltaACompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_DELTA2:
+            ret = delta2ACompress(pDesc, pIn, pOut);
+            break;
+        default:
+            assert(false);
+        }
+        pDesc->compressType = cmprType;
     } else if (strcmp(pAlgo, "rle") == 0) {
         ret = rleCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "zigzag") == 0) {
@@ -270,7 +347,30 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
 int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
     int ret = OK;
 
-    if (strcmp(pAlgo, "rle") == 0) {
+    if (NULL == pAlgo) {
+        switch (pDesc->compressType) {
+        case CMPR_RLE:
+            ret = rleDecompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_SIMPLE8B:
+            ret = simple8bDecompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_BIT_PACKING:
+            ret = bitPackingDecompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_VARINT:
+            ret = varintDecompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_DELTA:
+            ret = deltaADecompress(pDesc, pIn, pOut);
+            break;
+        case CMPR_DELTA2:
+            ret = delta2ADecompress(pDesc, pIn, pOut);
+            break;
+        default:
+            assert(false);
+        }
+    } else if (strcmp(pAlgo, "rle") == 0) {
         ret = rleDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "zigzag") == 0) {
         ret = zigzagDecompress(pDesc, pIn, pOut);

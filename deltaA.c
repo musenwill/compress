@@ -103,3 +103,8 @@ l_end:
     }
     return ret;
 }
+
+float32 deltaAEstimate(CUDesc *pDesc) {
+    return (float32)SIMPLE8B_PACKING_BITS * (float32)pDesc->eachValSize / 
+            (8.0 * BIT_WIDTH(2 * pDesc->avgAbsDelta));
+}
