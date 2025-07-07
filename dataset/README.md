@@ -16,7 +16,7 @@ bitcoin 和 warehouse 两个目录下是已经提取好了的数据，csv 中提
     sum:            // 数据求和
     average:        // 数据平均值
     attLen:         // 数据的字节数，在提取时会根据数据的 [min, max] 确定所需的字节数(1, 2, 4, 8)
-    avgldeltal:     // delta 值绝对值的平均数，用于评估数据的平稳性
+    avgAbsDelta:    // delta 值绝对值的平均数，用于评估数据的平稳性
     continuity:     // 评估数据的连续性，数据 delta 值的正负号变化越频繁连续性越差
     repeats:        // 数据重复度，即有多少个数据与前一个数据相同，或 delta 值为 0 的个数
     smallNums:      // (-256, 256) 之间小整数的个数

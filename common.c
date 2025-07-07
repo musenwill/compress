@@ -292,7 +292,7 @@ int dataTypeSize(const char *dataType) {
 }
 
 void CUDescDumpHeader() {
-    printf("%4s %16s %6s %12s %12s %12s %14s %5s %12s %12s %12s %10s %10s %10s\n",
+    printf("%4s %16s %6s %12s %16s %12s %18s %5s %12s %12s %12s %12s %10s %10s %10s\n",
         "id", 
         "compressedSize", 
         "attlen", 
@@ -303,17 +303,18 @@ void CUDescDumpHeader() {
         "count", 
         "minDelta", 
         "maxDelta", 
-        "avgldeltal", 
+        "avgAbsDelta", 
+        "avgAbsDelta2", 
         "continuity", 
         "repeats", 
         "smallNums");
 }
 
 int CUDescDump(CUDesc *pDesc, byte *pBuf) {
-    return sprintf((char *)pBuf, "%6d %12ld %12ld %12ld %14ld "
-        "%5ld %12ld %12ld %12ld %10ld %10ld %10ld",
+    return sprintf((char *)pBuf, "%6d %12ld %16ld %12ld %18ld "
+        "%5ld %12ld %12ld %12ld %12ld %10ld %10ld %10ld",
         pDesc->eachValSize, pDesc->minValue, pDesc->maxValue, pDesc->average, pDesc->sum, pDesc->count,
-        pDesc->minDelta, pDesc->maxDelta, pDesc->avgldeltal, pDesc->continuity, pDesc->repeats, pDesc->smallNums);
+        pDesc->minDelta, pDesc->maxDelta, pDesc->avgAbsDelta, pDesc->avgAbsDelta2, pDesc->continuity, pDesc->repeats, pDesc->smallNums);
 }
 
 void dumpHexBuffer(const byte *buf, int len) {

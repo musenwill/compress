@@ -135,10 +135,12 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
     int64 min, max, pre, delta, minDelta, maxDelta;
     int64 sum = 0;
     int64 count = 0;
-    int64 sumldeltal = 0;
+    int64 sumAbsDelta = 0;
+    int64 sumAbsDelta2 = 0;
     int64 continuity = 0;
     int64 repeats = 0;
     int64 smallNums = 0;
+    int64 preDelta = 0;
     int preDeltaSign = 0;   // 0 undefined, -1 negative, 1 positive
     int eachValSize = dataTypeSize(dataType);
     bool hasDelta = false;
@@ -189,10 +191,17 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
             }
             if (delta > 0) {
                 preDeltaSign = 1;
-                sumldeltal += delta;
+                sumAbsDelta += delta;
             } else if (delta < 0) {
                 preDeltaSign = -1;
-                sumldeltal += (delta * -1);
+                sumAbsDelta += (delta * -1);
+            }
+            int64 delta2 = (delta - preDelta);
+            preDelta = delta;
+            if (delta2 >= 0) {
+                sumAbsDelta2 += delta2;
+            } else {
+                sumAbsDelta2 -= delta2;
             }
         }
         if (val < 256 && val*-1 < 256) {
@@ -213,9 +222,11 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
         pDesc->average = 0;
     }
     if (count > 1) {
-        pDesc->avgldeltal = sumldeltal / (count - 1);
+        pDesc->avgAbsDelta = sumAbsDelta / (count - 1);
+        pDesc->avgAbsDelta2 = sumAbsDelta2 / (count - 1);
     } else {
-        pDesc->avgldeltal = 0;
+        pDesc->avgAbsDelta = 0;
+        pDesc->avgAbsDelta2 = 0;
     }
     pDesc->minDelta = minDelta;
     pDesc->maxDelta = maxDelta;
@@ -227,7 +238,9 @@ void collectIntegerCU(Buffer *pIn, const char *dataType, Buffer *pOut, CUDesc *p
 int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
     int ret = OK;
 
-    if (strcmp(pAlgo, "rle") == 0) {
+    if (NULL == pAlgo) {
+        
+    } else if (strcmp(pAlgo, "rle") == 0) {
         ret = rleCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "zigzag") == 0) {
         ret = zigzagCompress(pDesc, pIn, pOut);

@@ -97,7 +97,8 @@ typedef struct {
     int64 count;
     int64 minDelta;
     int64 maxDelta;
-    int64 avgldeltal;
+    int64 avgAbsDelta;
+    int64 avgAbsDelta2;
     int64 continuity;
     int64 repeats;
     int64 smallNums;

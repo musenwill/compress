@@ -16,17 +16,17 @@ import (
 )
 
 type Desc struct {
-	min        int64
-	max        int64
-	count      int64
-	sum        int64
-	average    int64
-	attLen     int
-	avgldeltal int64
-	continuity int64
-	repeats    int64
-	smallNums  int64
-	hasDesc    bool
+	min         int64
+	max         int64
+	count       int64
+	sum         int64
+	average     int64
+	attLen      int
+	avgAbsDelta int64
+	continuity  int64
+	repeats     int64
+	smallNums   int64
+	hasDesc     bool
 }
 
 type Column struct {
@@ -106,7 +106,7 @@ func (c *Column) calDesc() {
 	c.desc.sum = sum
 	c.desc.average = sum / c.desc.count
 	c.desc.attLen = colTypeLen(c.colType)
-	c.desc.avgldeltal = sumldeltal / (c.desc.count - 1)
+	c.desc.avgAbsDelta = sumldeltal / (c.desc.count - 1)
 	c.desc.continuity = continuity
 	c.desc.repeats = repeats
 	c.desc.smallNums = smallNums

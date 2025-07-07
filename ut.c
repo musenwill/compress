@@ -153,9 +153,9 @@ static void collectCUDesc(Buffer *pIn, CUDesc *pDesc, int eachValSize) {
         pDesc->average = 0;
     }
     if (count > 1) {
-        pDesc->avgldeltal = sumldeltal / (count - 1);
+        pDesc->avgAbsDelta = sumldeltal / (count - 1);
     } else {
-        pDesc->avgldeltal = 0;
+        pDesc->avgAbsDelta = 0;
     }
     pDesc->minDelta = minDelta;
     pDesc->maxDelta = maxDelta;
