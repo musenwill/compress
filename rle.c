@@ -253,8 +253,10 @@ void rleDumpCompressed(CUDesc *pDesc, Buffer *pIn) {
 
 float32 rleEstimate(CUDesc *pDesc) {
     float32 repeatRate = ((float32)pDesc->repeats) / (float32)pDesc->count;
-    if (repeatRate < 0.8) {
+    if (repeatRate < 0.75) {
         return 1.0;
+    } else if (repeatRate >= 1) {
+        return 1000.0;
     } else {
         return repeatRate / (3.0 * (1.0 - repeatRate));
     }
