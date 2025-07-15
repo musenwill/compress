@@ -177,7 +177,7 @@ void BufferWrite(Buffer *pBuffer, int datasize, uint64 data)
         }
     } else {
         for (int i = 0; i < datasize; i++) {
-            pdst[i] = pTmp[i];
+            pdst[datasize-i-1] = pTmp[datasize-i-1];
         }
     }
 
