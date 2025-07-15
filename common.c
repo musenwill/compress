@@ -33,21 +33,21 @@ int64 BufferReadSigned(Buffer *pBuffer, int datasize)
             int16 v = 0;
             byte *pTmp = (byte*)(&v);
             for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
+                pTmp[i] = psrc[datasize-i-1];
             }
             val = (int64)v;
         } else if (datasize == 4) {
             int32 v = 0;
             byte *pTmp = (byte*)(&v);
             for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
+                pTmp[i] = psrc[datasize-i-1];
             }
             val = (int64)v;
         } else if (datasize == 8) {
             int64 v = 0;
             byte *pTmp = (byte*)(&v);
             for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
+                pTmp[i] = psrc[datasize-i-1];
             }
             val = (int64)v;
         } else {
@@ -95,61 +95,69 @@ uint64 BufferReadUnsigned(Buffer *pBuffer, int datasize)
     uint64 val = 0;
 
     if (IS_LITTLE_ENDIAN) {
-        if (datasize == 1) {
-            uint8 v = (uint8)(*psrc);
-            val = v;
-        } else if (datasize == 2) {
-            uint16 v = 0;
-            byte *pTmp = (byte*)(&v);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
-            }
-            val = (uint64)v;
-        } else if (datasize == 4) {
-            uint32 v = 0;
-            byte *pTmp = (byte*)(&v);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
-            }
-            val = (uint64)v;
-        } else if (datasize == 8) {
-            uint64 v = 0;
-            byte *pTmp = (byte*)(&v);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[datasize-i-1] = psrc[i];
-            }
-            val = (uint64)v;
-        } else {
-            LOG_FATAL("datasize %d unsupported", datasize);
+        byte *pTmp = (byte*)(&val);
+        for (int i = 0; i < datasize; i++) {
+            pTmp[i] = psrc[datasize-i-1];
         }
+        // if (datasize == 1) {
+        //     uint8 v = (uint8)(*psrc);
+        //     val = v;
+        // } else if (datasize == 2) {
+        //     uint16 v = 0;
+        //     byte *pTmp = (byte*)(&v);
+        //     for (int i = 0; i < datasize; i++) {
+        //         pTmp[datasize-i-1] = psrc[i];
+        //     }
+        //     val = (uint64)v;
+        // } else if (datasize == 4) {
+        //     uint32 v = 0;
+        //     byte *pTmp = (byte*)(&v);
+        //     for (int i = 0; i < datasize; i++) {
+        //         pTmp[datasize-i-1] = psrc[i];
+        //     }
+        //     val = (uint64)v;
+        // } else if (datasize == 8) {
+        //     uint64 v = 0;
+        //     byte *pTmp = (byte*)(&v);
+        //     for (int i = 0; i < datasize; i++) {
+        //         pTmp[datasize-i-1] = psrc[i];
+        //     }
+        //     val = (uint64)v;
+        // } else {
+        //     LOG_FATAL("datasize %d unsupported", datasize);
+        // }
     } else {
-        if (datasize == 1) {
-            uint8 v = (uint8)(*psrc);
-            val = (uint64)v;
-        } else if (datasize == 2) {
-            uint16 v = 0;
-            byte *pTmp = (byte*)(&v);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[i] = psrc[i];
-            }
-            val = (uint64)v;
-        } else if (datasize == 4) {
-            uint32 v = 0;
-            byte *pTmp = (byte*)(&v);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[i] = psrc[i];
-            }
-            val = (uint64)v;
-        } else if (datasize == 8) {
-            uint64 v = 0;
-            byte *pTmp = (byte*)(&v);
-            for (int i = 0; i < datasize; i++) {
-                pTmp[i] = psrc[i];
-            }
-            val = (uint64)v;
-        } else {
-            LOG_FATAL("datasize %d unsupported", datasize);
+        byte *pTmp = (byte*)(&val);
+        for (int i = 0; i < datasize; i++) {
+            pTmp[sizeof(val) - i - 1] = psrc[datasize - i - 1];
         }
+        // if (datasize == 1) {
+        //     uint8 v = (uint8)(*psrc);
+        //     val = (uint64)v;
+        // } else if (datasize == 2) {
+        //     uint16 v = 0;
+        //     byte *pTmp = (byte*)(&v);
+        //     for (int i = 0; i < datasize; i++) {
+        //         pTmp[i] = psrc[i];
+        //     }
+        //     val = (uint64)v;
+        // } else if (datasize == 4) {
+        //     uint32 v = 0;
+        //     byte *pTmp = (byte*)(&v);
+        //     for (int i = 0; i < datasize; i++) {
+        //         pTmp[i] = psrc[i];
+        //     }
+        //     val = (uint64)v;
+        // } else if (datasize == 8) {
+        //     uint64 v = 0;
+        //     byte *pTmp = (byte*)(&v);
+        //     for (int i = 0; i < datasize; i++) {
+        //         pTmp[i] = psrc[i];
+        //     }
+        //     val = (uint64)v;
+        // } else {
+        //     LOG_FATAL("datasize %d unsupported", datasize);
+        // }
     }
 
     pBuffer->readPos += datasize;

@@ -103,9 +103,10 @@ float32 varintEstimate(CUDesc *pDesc) {
     int encodeBytes;
 
     if (pDesc->minValue < 0) {
-        encodeBytes = (BIT_WIDTH(pDesc->average) + 6) / 7;
-    } else {
         encodeBytes = (BIT_WIDTH(2 * labs(pDesc->average)) + 6) / 7;
+        
+    } else {
+        encodeBytes = (BIT_WIDTH(pDesc->average) + 6) / 7;
     }
 
     return (float32)pDesc->eachValSize / (float32)encodeBytes;

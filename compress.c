@@ -340,8 +340,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
     } else {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
-
-    return ret;
+    assert(ret >= 0);
+    return OK;
 }
 
 int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
@@ -394,7 +394,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         LOG_FATAL("compress algorithm %s unsupported yet", pAlgo);
     }
 
-    return ret;
+    assert(ret >= 0);
+    return OK;
 }
 
 int compressFile(const char *filePath, const char *pAlgo, const char *dataType) {

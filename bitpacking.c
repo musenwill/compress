@@ -10,7 +10,7 @@ static int calculateBitWidth(CUDesc *pDesc) {
     }
 
     if (pDesc->minValue < 0) {
-        int m = BIT_WIDTH((uint64)(((0 - pDesc->minValue) << 1) - 1));    // will be zigzaged
+        int m = BIT_WIDTH((uint64)(((-pDesc->minValue) << 1) - 1));    // will be zigzaged
         if (pDesc->maxValue < 0) {
             bitWidth = m;
         } else {

@@ -385,7 +385,7 @@ l_end:
 float32 simple8bEstimate(CUDesc *pDesc) {
     float32 bitwidth;
 
-    if (pDesc->minValue < 0) {
+    if (pDesc->minValue >= 0) {
         bitwidth = (float32)BIT_WIDTH(pDesc->average);
     } else {
         bitwidth = (float32)BIT_WIDTH(2 * labs(pDesc->average));
