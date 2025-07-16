@@ -79,7 +79,7 @@ int varintDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     }
 
     while (pIn->readPos < pIn->len) {
-        int64 val = (int64)varintReadVal(pIn);
+        uint64 val = varintReadVal(pIn);
         BufferWrite(pVarintDecompressed, pDesc->eachValSize, val);
     }
     BufferFinishWrite(pVarintDecompressed);
