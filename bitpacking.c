@@ -75,7 +75,7 @@ int bitPackingDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
 
     int bitWidth = BufferReadBits(pIn, 8);
     for (int i = 0; i < pDesc->count; i++) {
-        int64 val = (int64)BufferReadBits(pIn, bitWidth);
+        uint64 val = BufferReadBits(pIn, bitWidth);
         BufferWrite(pBitPackDecompressed, pDesc->eachValSize, val);
     }
     BufferFinishWrite(pBitPackDecompressed);

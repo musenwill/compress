@@ -24,9 +24,9 @@ typedef struct {
     int bitWidth;
     simple8bPack pfPack;
     simple8bUnpack pfUnpack;
-} Packing;
+} Simple8bPacker;
 
-static inline uint64 packn(Simple8bArray *pArray, int selectorID, int bitWidth) {
+static inline uint64 simple8bPackn(Simple8bArray *pArray, int selectorID, int bitWidth) {
     uint64 block = selectorID;
     int valNum = SIMPLE8B_PACKING_BITS / bitWidth;
 
@@ -39,7 +39,7 @@ static inline uint64 packn(Simple8bArray *pArray, int selectorID, int bitWidth) 
 }
 
 /* encode 240 number of 1 or 0*/
-static inline uint64 pack0(Simple8bArray *pArray) {
+static inline uint64 simple8bPack0(Simple8bArray *pArray) {
     uint64 block = 0;
 
     if (pArray->vals[pArray->readPos] == 1) {
@@ -51,7 +51,7 @@ static inline uint64 pack0(Simple8bArray *pArray) {
 }
 
 /* encode 120 number of 1 or 0*/
-static inline uint64 pack1(Simple8bArray *pArray) {
+static inline uint64 simple8bPack1(Simple8bArray *pArray) {
     uint64 block = 1;
 
     if (pArray->vals[pArray->readPos] == 1) {
@@ -63,63 +63,63 @@ static inline uint64 pack1(Simple8bArray *pArray) {
 }
 
 /* encode 60 number of 1 and 0*/
-static inline uint64 pack2(Simple8bArray *pArray) {
-    return packn(pArray, 2, 1);
+static inline uint64 simple8bPack2(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 2, 1);
 }
 
-static inline uint64 pack3(Simple8bArray *pArray) {
-    return packn(pArray, 3, 2);
+static inline uint64 simple8bPack3(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 3, 2);
 }
 
-static inline uint64 pack4(Simple8bArray *pArray) {
-    return packn(pArray, 4, 3);
+static inline uint64 simple8bPack4(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 4, 3);
 }
 
-static inline uint64 pack5(Simple8bArray *pArray) {
-    return packn(pArray, 5, 4);
+static inline uint64 simple8bPack5(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 5, 4);
 }
 
-static inline uint64 pack6(Simple8bArray *pArray) {
-    return packn(pArray, 6, 5);
+static inline uint64 simple8bPack6(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 6, 5);
 }
 
-static inline uint64 pack7(Simple8bArray *pArray) {
-    return packn(pArray, 7, 6);
+static inline uint64 simple8bPack7(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 7, 6);
 }
 
-static inline uint64 pack8(Simple8bArray *pArray) {
-    return packn(pArray, 8, 7);
+static inline uint64 simple8bPack8(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 8, 7);
 }
 
-static inline uint64 pack9(Simple8bArray *pArray) {
-    return packn(pArray, 9, 8);
+static inline uint64 simple8bPack9(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 9, 8);
 }
 
-static inline uint64 pack10(Simple8bArray *pArray) {
-    return packn(pArray, 10, 10);
+static inline uint64 simple8bPack10(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 10, 10);
 }
 
-static inline uint64 pack11(Simple8bArray *pArray) {
-    return packn(pArray, 11, 12);
+static inline uint64 simple8bPack11(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 11, 12);
 }
 
-static inline uint64 pack12(Simple8bArray *pArray) {
-    return packn(pArray, 12, 15);
+static inline uint64 simple8bPack12(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 12, 15);
 }
 
-static inline uint64 pack13(Simple8bArray *pArray) {
-    return packn(pArray, 13, 20);
+static inline uint64 simple8bPack13(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 13, 20);
 }
 
-static inline uint64 pack14(Simple8bArray *pArray) {
-    return packn(pArray, 14, 30);
+static inline uint64 simple8bPack14(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 14, 30);
 }
 
-static inline uint64 pack15(Simple8bArray *pArray) {
-    return packn(pArray, 15, 60);
+static inline uint64 simple8bPack15(Simple8bArray *pArray) {
+    return simple8bPackn(pArray, 15, 60);
 }
 
-static inline void unpackn(uint64 block, Simple8bArray *pArray, int bitWidth) {
+static inline void simple8bUnpackn(uint64 block, Simple8bArray *pArray, int bitWidth) {
     int valNum = SIMPLE8B_PACKING_BITS / bitWidth;
 
     for (int i = 0; i < valNum; i++) {
@@ -130,7 +130,7 @@ static inline void unpackn(uint64 block, Simple8bArray *pArray, int bitWidth) {
     assert(pArray->writePos <= COMPRESS_BATCHSIZE);
 }
 
-static inline void unpack0(uint64 block, Simple8bArray *pArray) {
+static inline void simple8bUnpack0(uint64 block, Simple8bArray *pArray) {
     if ((block & 0x10) == 0x10) {
         for (int i = 0; i < 240; i++) {
             pArray->vals[pArray->writePos + i] = 1;
@@ -145,7 +145,7 @@ static inline void unpack0(uint64 block, Simple8bArray *pArray) {
     assert(pArray->writePos <= COMPRESS_BATCHSIZE);
 }
 
-static inline void unpack1(uint64 block, Simple8bArray *pArray) {
+static inline void simple8bUnpack1(uint64 block, Simple8bArray *pArray) {
 
     if ((block & 0x10) == 0x10) {
         for (int i = 0; i < 120; i++) {
@@ -161,84 +161,84 @@ static inline void unpack1(uint64 block, Simple8bArray *pArray) {
     assert(pArray->writePos <= COMPRESS_BATCHSIZE);
 }
 
-static inline void unpack2(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 1);
+static inline void simple8bUnpack2(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 1);
 }
 
-static inline void unpack3(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 2);
+static inline void simple8bUnpack3(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 2);
 }
 
-static inline void unpack4(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 3);
+static inline void simple8bUnpack4(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 3);
 }
 
-static inline void unpack5(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 4);
+static inline void simple8bUnpack5(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 4);
 }
 
-static inline void unpack6(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 5);
+static inline void simple8bUnpack6(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 5);
 }
 
-static inline void unpack7(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 6);
+static inline void simple8bUnpack7(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 6);
 }
 
-static inline void unpack8(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 7);
+static inline void simple8bUnpack8(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 7);
 }
 
-static inline void unpack9(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 8);
+static inline void simple8bUnpack9(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 8);
 }
 
-static inline void unpack10(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 10);
+static inline void simple8bUnpack10(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 10);
 }
 
-static inline void unpack11(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 12);
+static inline void simple8bUnpack11(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 12);
 }
 
-static inline void unpack12(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 15);
+static inline void simple8bUnpack12(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 15);
 }
 
-static inline void unpack13(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 20);
+static inline void simple8bUnpack13(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 20);
 }
 
-static inline void unpack14(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 30);
+static inline void simple8bUnpack14(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 30);
 }
 
-static inline void unpack15(uint64 block, Simple8bArray *pArray) {
-    unpackn(block, pArray, 60);
+static inline void simple8bUnpack15(uint64 block, Simple8bArray *pArray) {
+    simple8bUnpackn(block, pArray, 60);
 }
 
-static Packing gSelectors[SIMPLE8B_SELECTOR_NUM] = {
-	{0, pack0, unpack0},
-	{0, pack1, unpack1},
-	{1, pack2, unpack2},
-	{2, pack3, unpack3},
-	{3, pack4, unpack4},
-	{4, pack5, unpack5},
-	{5, pack6, unpack6},
-	{6, pack7, unpack7},
-	{7, pack8, unpack8},
-	{8, pack9, unpack9},
-	{10, pack10, unpack10},
-	{12, pack11, unpack11},
-	{15, pack12, unpack12},
-	{20, pack13, unpack13},
-	{30, pack14, unpack14},
-	{60, pack15, unpack15},
+static Simple8bPacker gSelectors[SIMPLE8B_SELECTOR_NUM] = {
+	{0, simple8bPack0, simple8bUnpack0},
+	{0, simple8bPack1, simple8bUnpack1},
+	{1, simple8bPack2, simple8bUnpack2},
+	{2, simple8bPack3, simple8bUnpack3},
+	{3, simple8bPack4, simple8bUnpack4},
+	{4, simple8bPack5, simple8bUnpack5},
+	{5, simple8bPack6, simple8bUnpack6},
+	{6, simple8bPack7, simple8bUnpack7},
+	{7, simple8bPack8, simple8bUnpack8},
+	{8, simple8bPack9, simple8bUnpack9},
+	{10, simple8bPack10, simple8bUnpack10},
+	{12, simple8bPack11, simple8bUnpack11},
+	{15, simple8bPack12, simple8bUnpack12},
+	{20, simple8bPack13, simple8bUnpack13},
+	{30, simple8bPack14, simple8bUnpack14},
+	{60, simple8bPack15, simple8bUnpack15},
 };
 
 static inline bool canPack(Simple8bArray *pArray, int selectorID) {
     assert(selectorID >= 0 && selectorID < SIMPLE8B_SELECTOR_NUM);
-    Packing *pPacker = &gSelectors[selectorID];
+    Simple8bPacker *pPacker = &gSelectors[selectorID];
     int valNum;
 
     if (selectorID == 0) {
@@ -276,11 +276,12 @@ static inline bool canPack(Simple8bArray *pArray, int selectorID) {
 }
 
 static void Simple8bArrayRead(Simple8bArray *pOut, CUDesc *pDesc, Buffer *pIn) {
+    assert((pIn->len - pIn->readPos) / pDesc->eachValSize <= COMPRESS_BATCHSIZE);
     while (pIn->readPos + pDesc->eachValSize <= pIn->len) {
         uint64 val = BufferReadUnsigned(pIn, pDesc->eachValSize);
         assert(val <= SIMPLE8B_MAX_SUPPORT_VAL);
         pOut->vals[pOut->writePos++] = val;
-        assert(pOut->writePos <= COMPRESS_BATCHSIZE);
+
     }
     pOut->len = pOut->writePos;
     pOut->writePos = 0;
@@ -321,17 +322,16 @@ int simple8bCompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
 
     Simple8bArrayRead(&array, pDesc, pIn);
     while (array.readPos < array.len) {
-        int i;
-        for (i = 0; i < SIMPLE8B_SELECTOR_NUM; i++) {
+        for (int i = 0; i < SIMPLE8B_SELECTOR_NUM; i++) {
             if (canPack(&array, i)) {
-                Packing *pPacker = &gSelectors[i];
+                Simple8bPacker *pPacker = &gSelectors[i];
                 uint64 block = pPacker->pfPack(&array);
                 BufferWrite(pOut, sizeof(block), block);
                 break;
             }
         }
-        assert(array.readPos <= array.len);
     }
+    assert(array.readPos == array.len);
     BufferFinishWrite(pOut);
     ret = pOut->len;
 
@@ -351,7 +351,7 @@ int simple8bDecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
     while (pIn->readPos < pIn->len) {
         uint64 block = BufferReadUnsigned(pIn, sizeof(block));
         byte header = block & 0x0F;
-        Packing *pPacker = &gSelectors[header];
+        Simple8bPacker *pPacker = &gSelectors[header];
         pPacker->pfUnpack(block, &array);
     }
     array.len = array.writePos;
