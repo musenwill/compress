@@ -477,6 +477,7 @@ int compressFile(const char *filePath, const char *pAlgo, const char *dataType) 
     stats.compressedSize = CompressResultTotalSize(pCompressResult);
 
     DecompressResultCheck(dataTypeSize(dataType), pDecompressResult, pOrigin);
+    printf("compression name %s\n", pAlgo);
     CompressStatsPrint(&stats);
     CompressResultPrint(pCompressResult);
 
