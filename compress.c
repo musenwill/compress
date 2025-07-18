@@ -6,6 +6,7 @@
 #include "deltaA.h"
 #include "deltaB.h"
 #include "deltaC.h"
+#include "deltaD.h"
 #include "delta2A.h"
 #include "delta2B.h"
 #include "bitpacking.h"
@@ -329,6 +330,8 @@ int compressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = deltaBCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "deltaC") == 0) {
         ret = deltaCCompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "deltaD") == 0) {
+        ret = deltaDCompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         ret = delta2ACompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2B") == 0) {
@@ -382,6 +385,8 @@ int decompressCU(CUDesc *pDesc, Buffer *pIn, Buffer *pOut, const char *pAlgo) {
         ret = deltaBDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "deltaC") == 0) {
         ret = deltaCDecompress(pDesc, pIn, pOut);
+    } else if (strcmp(pAlgo, "deltaD") == 0) {
+        ret = deltaDDecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2A") == 0) {
         ret = delta2ADecompress(pDesc, pIn, pOut);
     } else if (strcmp(pAlgo, "delta2B") == 0) {
