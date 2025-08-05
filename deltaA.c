@@ -57,7 +57,11 @@ int deltaACompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
         goto l_end;
     }
 
-    ret = simple8bCompress(pDesc, pZigzagCompressed, pOut);
+    CUDesc simple8bDesc = {};
+    simple8bDesc.eachValSize = pDesc->eachValSize;
+    simple8bDesc.count = pDesc->count;
+    simple8bDesc.minValue = 1;
+    ret = simple8bCompress(&simple8bDesc, pZigzagCompressed, pOut);
 
 l_end:
     if (NULL != pDeltaCalculated) {
@@ -84,7 +88,11 @@ int deltaADecompress(CUDesc *pDesc, Buffer *pIn, Buffer *pOut) {
         goto l_end;
     }
 
-    ret = simple8bDecompress(pDesc, pIn, pSimple8bDecompressed);
+    CUDesc simple8bDesc = {};
+    simple8bDesc.eachValSize = pDesc->eachValSize;
+    simple8bDesc.count = pDesc->count;
+    simple8bDesc.minValue = 1;
+    ret = simple8bDecompress(&simple8bDesc, pIn, pSimple8bDecompressed);
     if (ret < 0) {
         goto l_end;
     }
