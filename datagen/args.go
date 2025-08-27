@@ -24,9 +24,25 @@ var colIdx = cli.IntFlag{
 	Usage:    "column index, start from 0",
 	Required: true,
 }
+var tsIdx = cli.IntFlag{
+	Name:     "tsidx",
+	Usage:    "timestamp index, start from 0",
+	Required: true,
+}
+var fdIdx = cli.IntFlag{
+	Name:     "fdidx",
+	Usage:    "field index, start from 0",
+	Required: true,
+}
+var tgIdx = cli.IntFlag{
+	Name:     "tgidx",
+	Usage:    "tag index, start from 0",
+	Required: true,
+}
+
 var colType = cli.StringFlag{
 	Name:  "type",
-	Usage: "column data type, including [int8, int16, int32, int64, float32, float64, bool, string]",
+	Usage: "column data type, including [int8, int16, int32, int64, float32, float64, bool, string, timestamp]",
 }
 var isRaw = cli.BoolFlag{
 	Name:  "raw",
@@ -116,6 +132,12 @@ func New() *cli.App {
 			Usage:  "extract column data from csv file",
 			Flags:  []cli.Flag{csvPath, colIdx, colType, isRaw},
 			Action: extract,
+		},
+		{
+			Name:   "lossy",
+			Usage:  "extract timestamp and number data from csv file for lossy compress",
+			Flags:  []cli.Flag{csvPath, tsIdx, tgIdx, fdIdx},
+			Action: lossyExtract,
 		},
 		{
 			Name:   "random",

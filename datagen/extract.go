@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+	"unicode"
 
 	"github.com/urfave/cli"
 )
@@ -170,6 +172,32 @@ func colTypeSupports(colType string) {
 	if !supported {
 		log.Fatalf("column type %s unsupported", colType)
 	}
+}
+
+func parseTimestamp(tsStr string) int64 {
+	baseFormat := "2006-01-02 15:04:05"
+	tsRunes := []rune(tsStr)
+
+	dotIdx := strings.IndexRune(tsStr, '.')
+	if dotIdx > 0 {
+		baseFormat += "."
+		for i := dotIdx + 1; i < len(tsStr); i++ {
+			if unicode.IsDigit(tsRunes[i]) {
+				baseFormat += "0"
+			} else {
+				break
+			}
+		}
+	}
+	if strings.Contains(tsStr, "+") {
+		baseFormat += "+00"
+	}
+
+	ts, err := time.Parse(baseFormat, tsStr)
+	if err != nil {
+		log.Fatalf("column value %s can not convert to timestamp, %s", tsStr, err)
+	}
+	return ts.UnixMicro()
 }
 
 func colTypeLen(colType string) int {
