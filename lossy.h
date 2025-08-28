@@ -4,6 +4,8 @@
 #include "c.h"
 #include "common.h"
 
-int lossyCompressFile(const char *filePath, const char *pAlgo, const char *dataType);
+bool isLossyAlgorithm(const char *pAlgo);
+
+int lossyCompressFile(const char *filePath, const char *pAlgo, float rate);
 
 #endif

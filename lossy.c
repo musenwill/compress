@@ -1,93 +1,168 @@
 #include "lossy.h"
 
+#define LOSSY_CMPR_INFINITE_RATE    10000
+#define CMPR_RATE_ADJUST_FACTOR      0.05   // 调整系数
+
 typedef struct {
-    float64 timestampUs;
+    uint64 timestampUs;
     float64 value;
+    char originLine[256];
 } DataPoint;
 
 typedef struct {
 
 } SDTFilter;
 
-#define TARGET_LOWER_BOUND 0.95 // 压缩比下限（0.95R）
-#define TARGET_UPPER_BOUND 1.05 // 压缩比上限（1.05R）
-
+/**
+ * 死区压缩不用怎么考虑时间乱序的问题
+ */
 typedef struct {
-    float64 target_ratio;    // 目标压缩比R（如10）
-    float64 current_deviation; // 当前死区阈值
-    float64 adjust_factor;   // 调整系数（默认0.05）
-    
-    // 滑动窗口统计
-    int window_size;        // 窗口大小 = R
-    int processed_count;    // 已处理点数
-    int saved_count;        // 已存储点数
-    DataPoint last_saved;   // 上一个存储点
+    float64 targetRatio;        // 目标压缩比 R（如 10）
+    float64 targetRatioLowerBound;
+    float64 targetRatioUpperBound;
+    float64 currentDeviation;   // 当前死区阈值
+    float64 adjustFactor;       // 调整系数（默认 0.05）
+
+    CircularBitmap bitmap;      // 记录最近 10R 个数据的过滤情况, 1 为保留，0 为丢弃
+    float64 lastSavedVal;       // 上一个存储点
 } DeadZoneFilter;
 
-static void initDeadZoneFilter(
+void DeadZoneFilterInit(
     DeadZoneFilter* filter, 
-    float64 target_ratio, 
+    float64 targetRatio,
     float64 init_deviation
 ) {
+    Assert(targetRatio >= 5);
+    Assert(init_deviation > 0);
     memset(filter, 0, sizeof(*filter));
-    filter->target_ratio = target_ratio;
-    filter->current_deviation = init_deviation;
-    filter->adjust_factor = 0.05; // 默认每次调整±5%
-    filter->window_size = (int)target_ratio;
-    filter->processed_count = 0;
-    filter->saved_count = 0;
+    filter->targetRatio = targetRatio;
+    filter->currentDeviation = init_deviation;
+    filter->adjustFactor = CMPR_RATE_ADJUST_FACTOR; // 默认每次调整±5%
+    filter->targetRatioLowerBound = targetRatio * (1 - filter->adjustFactor);
+    filter->targetRatioUpperBound = targetRatio * (1 + filter->adjustFactor);
+    CircularBitmapInit(&filter->bitmap, (int)(10 * targetRatio));
 }
 
-void adjust_deviation(DeadZoneFilter* comp) {
-    if (comp->processed_count < comp->window_size) return;
+void DeadZoneFilterFini(DeadZoneFilter* filter) {
+    CircularBitmapFini(&filter->bitmap);
+}
 
-    double current_ratio = (double)comp->processed_count / comp->saved_count;
-    double lower_bound = comp->target_ratio * TARGET_LOWER_BOUND;
-    double upper_bound = comp->target_ratio * TARGET_UPPER_BOUND;
+bool DeadZoneFilterIsEmpty(DeadZoneFilter* filter) {
+    return CircularBitmapIsEmpty(&filter->bitmap);
+}
 
-    if (current_ratio < lower_bound) {
-        // 压缩不足：提高精度（减小阈值）
-        comp->current_deviation *= (1.0 - comp->adjust_factor);
-    } else if (current_ratio > upper_bound) {
-        // 压缩过度：降低精度（增大阈值）
-        comp->current_deviation *= (1.0 + comp->adjust_factor);
+bool DeadZoneFilterCanCalcCmprRate(DeadZoneFilter* filter) {
+    return 10 * filter->bitmap.len >= filter->bitmap.capacity;
+}
+
+float64 DeadZoneFilterCurrentCmprRate(DeadZoneFilter* filter) {
+    if (filter->bitmap.bitCount <= 0) {
+        return LOSSY_CMPR_INFINITE_RATE;
+    } else {
+        return (float64)filter->bitmap.len / (float64)filter->bitmap.bitCount;
+    }
+}
+
+void DeadZoneFilterAdjustDeviation(DeadZoneFilter* filter) {
+    if (!DeadZoneFilterCanCalcCmprRate(filter)) {
+        return;
     }
 
-    // 重置窗口统计
-    comp->processed_count = 0;
-    comp->saved_count = 0;
+     // 提升压缩率时慢点增大阈值，降低压缩率时快点减少阈值
+     // 可用性优先级高于压缩率
+    float64 current_ratio = DeadZoneFilterCurrentCmprRate(filter);
+    if (current_ratio < filter->targetRatioLowerBound) {
+        // 压缩不足：降低精度（增大阈值）
+        filter->currentDeviation *= (1.0 + filter->adjustFactor);
+    } else if (current_ratio > filter->targetRatioUpperBound) {
+        // 压缩过度：提高精度（减小阈值）
+        filter->currentDeviation *= pow((1.0 - filter->adjustFactor), current_ratio / filter->targetRatio);
+    }
 }
 
-int compress_point(DeadZoneFilter* comp, DataPoint point) {
-    comp->processed_count++;
-    int should_save = 0;
+bool DeadZoneFilterShouldKeepPoint(DeadZoneFilter* filter, float64 val) {
+    bool shouldKeep = false;
 
-    // 首点必存
-    if (isnan(comp->last_saved.value)) {
-        should_save = 1;
+    // the first point must keep
+    if (DeadZoneFilterIsEmpty(filter)) {
+        shouldKeep = true;
     } else {
-        double value_diff = fabs(point.value - comp->last_saved.value);
-        double time_diff = point.timestampUs - comp->last_saved.timestampUs;
-        
-        // 死区判断：值变化超过阈值则存储[6,8](@ref)
-        if (value_diff > comp->current_deviation) {
-            should_save = 1;
+        double value_diff = fabs(val - filter->lastSavedVal);
+        // 死区判断：值变化超过阈值则存储
+        if (value_diff > filter->currentDeviation) {
+            shouldKeep = true;
         }
     }
 
-    if (should_save) {
-        comp->last_saved = point; // 更新最后存储点
-        comp->saved_count++;
+    CircularBitmapPut(&filter->bitmap, shouldKeep);
+    if (shouldKeep) {
+        filter->lastSavedVal = val; // 更新最后存储点
     }
 
-    // 每处理R个点后调整阈值
-    if (comp->processed_count % comp->window_size == 0) {
-        adjust_deviation(comp);
-    }
+    // 动态调整阈值
+    DeadZoneFilterAdjustDeviation(filter);
 
-    return should_save;
+    return shouldKeep;
 }
 
-int lossyCompressFile(const char *filePath, const char *pAlgo, const char *dataType) {
+bool isLossyAlgorithm(const char *pAlgo) {
+    if ((strcmp(pAlgo, "deadzone") != 0) && (strcmp(pAlgo, "dst") != 0)) {
+        return false;
+    }
+    return true;
+}
 
+void trim_trailing(char *str) {
+    if (str == NULL || *str == '\0') return;
+    char *end = str + strlen(str) - 1;
+    while (end >= str && isspace((unsigned char)*end)) {
+        end--;
+    }
+    *(end + 1) = '\0';
+}
+
+int readDataPointFromFile(FILE *pFile, DataPoint *dp) {
+    dp->originLine[0] = '\0';
+    char *pLine = fgets(dp->originLine, sizeof(dp->originLine), pFile);
+    if (pLine == NULL) {
+        return ERR_EOF;
+    }
+    trim_trailing(pLine);
+    sscanf(pLine, "%ld    %lf", &dp->timestampUs, &dp->value);
+    return OK;
+}
+
+int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
+    int rc = OK;
+
+    FILE *pFile = fopen(filePath, "r");
+    if (pFile == NULL) {
+        LOG_ERROR("Failed open file %s", filePath);
+        rc = ERR_FILE;
+        goto l_end;
+    }
+
+    if (strcmp(pAlgo, "deadzone") == 0) {
+        DataPoint dp = { };
+        DeadZoneFilter filter = {};
+        DeadZoneFilterInit(&filter, rate, 1.0);
+
+        while (readDataPointFromFile(pFile, &dp) >= 0) {
+            if (DeadZoneFilterShouldKeepPoint(&filter, dp.value)) {
+                printf("%s\n", dp.originLine);
+            }
+        }
+
+        DeadZoneFilterFini(&filter);
+    } else if (strcmp(pAlgo, "sdt") == 0) {
+
+    } else {
+        LOG_FATAL("lossy compress algorithm %s unsupported yet", pAlgo);
+    }
+
+l_end:
+    if (pFile != NULL) {
+        fclose(pFile);
+    }
+    return rc;
 }

@@ -1,6 +1,7 @@
 #include "c.h"
 #include "common.h"
 #include "compress.h"
+#include "lossy.h"
 #include "ut.h"
 
 void helper() {
@@ -24,5 +25,10 @@ int main(int argc, char **ppArgv) {
         algo = ppArgv[3];
     }
 
-    return compressFile(filepath, algo, dataType);
+    if (isLossyAlgorithm(algo)) {
+        int rate = atoi(dataType);
+        return lossyCompressFile(filepath, algo, (float64)rate);
+    } else {
+        return compressFile(filepath, algo, dataType);
+    }
 }

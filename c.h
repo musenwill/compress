@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <assert.h>
 #include <time.h>
+#include <math.h>
+#include <ctype.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -22,6 +24,10 @@
 #ifndef unlikely
 #define unlikely(x) __builtin_expect((x) != 0, 0)
 #endif
+
+#define palloc0(size) malloc((size))
+#define pfree(ptr) free((ptr))
+#define Assert(condition) assert((condition))
 
 #ifndef TRUE
 #define TRUE 1

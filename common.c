@@ -279,3 +279,47 @@ void dumpHexBuffer(const byte *buf, int len) {
     }
     printf("\n");
 }
+
+void CircularBitmapInit(CircularBitmap *bitmap, int cap) {
+    int bitmapSize = (cap + 7) >> 3;
+    memset(bitmap, 0, sizeof(*bitmap));
+    bitmap->data = (uint32*)palloc0(bitmapSize);
+    bitmap->capacity = cap;
+}
+
+void CircularBitmapFini(CircularBitmap *bitmap) {
+    if (bitmap->data != NULL) {
+        pfree(bitmap->data);
+        bitmap->data = NULL;
+    }
+}
+
+void CircularBitmapPut(CircularBitmap *bitmap, bool bit) {
+    int idx = bitmap->writePos / 32;
+    int offset = bitmap->writePos % 32;
+    bool oldBit = ((bitmap->data[idx] & (1 << offset)) > 0)? true : false;
+    
+    if (bit) {
+        bitmap->data[idx] |= (1 << offset); 
+    } else {
+        bitmap->data[idx] &= ~(1 << offset);
+    }
+    bitmap->writePos = (bitmap->writePos + 1) % bitmap->capacity;
+
+    if (bitmap->len < bitmap->capacity) {
+        bitmap->bitCount = bit? (bitmap->bitCount + 1): bitmap->bitCount;
+        bitmap->len++;
+    } else {
+        bitmap->bitCount = oldBit? (bitmap->bitCount - 1) : bitmap->bitCount;
+        bitmap->bitCount = bit? (bitmap->bitCount + 1): bitmap->bitCount;
+    }
+    Assert(0 <= bitmap->bitCount && bitmap->bitCount <= bitmap->len);
+}
+
+int CircularBitmapBitCount(CircularBitmap *bitmap) {
+    return bitmap->bitCount;
+}
+
+bool CircularBitmapIsEmpty(CircularBitmap *bitmap) {
+    return bitmap->len <= 0;
+}

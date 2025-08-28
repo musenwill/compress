@@ -7,6 +7,9 @@
 #define ERR         -1
 #define ERR_MEM     -10
 #define ERR_FILE    -11
+#define ERR_EOF     -12
+
+#define COMPRESS_BATCHSIZE  60000
 
 enum LOG_LEVEL
 {
@@ -138,6 +141,18 @@ int CUDescDump(CUDesc *pDesc, byte *pBuf);
 
 void dumpHexBuffer(const byte *buf, int len);
 
-#define COMPRESS_BATCHSIZE  60000
+typedef struct {
+    uint32 *data;           // 位图数组
+    int capacity;           // 总容量（位数量）
+    int writePos;           // 当前写入位置（0 ~ capacity-1）
+    int len;                // 当前写入数量
+    int bitCount;           // 位图中 1 的个数
+} CircularBitmap;
+
+void CircularBitmapInit(CircularBitmap *bitmap, int cap);
+void CircularBitmapFini(CircularBitmap *bitmap);
+void CircularBitmapPut(CircularBitmap *bitmap, bool bit);
+int CircularBitmapBitCount(CircularBitmap *bitmap);
+bool CircularBitmapIsEmpty(CircularBitmap *bitmap);
 
 #endif
