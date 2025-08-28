@@ -265,7 +265,7 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
     } else if (strcmp(pAlgo, "sdt") == 0) {
         DataPoint dp = { };
         SDTFilter filter = {};
-        SDTFilterInit(&filter, rate, 1.0);
+        SDTFilterInit(&filter, rate, 0.01);
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (SDTFilterShouldKeepPoint(&filter, dp)) {
