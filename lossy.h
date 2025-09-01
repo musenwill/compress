@@ -6,6 +6,6 @@
 
 bool isLossyAlgorithm(const char *pAlgo);
 
-int lossyCompressFile(const char *filePath, const char *pAlgo, float rate);
+int lossyCompressFile(const char *filePath, const char *pAlgo, float rate, bool adaptive);
 
 #endif

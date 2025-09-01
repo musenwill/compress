@@ -18,6 +18,7 @@ typedef struct {
     float64 targetRatioUpperBound;
     float64 currentDeviation;   // 当前死区阈值
     float64 adjustFactor;       // 调整系数（默认 0.05）
+    bool adaptive;              // 自适应调整精度
 
     CircularBitmap bitmap;      // 记录最近 10R 个数据的过滤情况, 1 为保留，0 为丢弃
     float64 lastSavedVal;       // 上一个存储点
@@ -26,7 +27,8 @@ typedef struct {
 void DeadZoneFilterInit(
     DeadZoneFilter* filter, 
     float64 targetRatio,
-    float64 init_deviation
+    float64 init_deviation,
+    bool adaptive
 ) {
     Assert(targetRatio >= 5);
     Assert(init_deviation > 0);
@@ -36,6 +38,7 @@ void DeadZoneFilterInit(
     filter->adjustFactor = CMPR_RATE_ADJUST_FACTOR; // 默认每次调整±5%
     filter->targetRatioLowerBound = targetRatio * (1 - filter->adjustFactor);
     filter->targetRatioUpperBound = targetRatio * (1 + filter->adjustFactor);
+    filter->adaptive = adaptive;
     CircularBitmapInit(&filter->bitmap, (int)(10 * targetRatio));
 }
 
@@ -96,7 +99,9 @@ bool DeadZoneFilterShouldKeepPoint(DeadZoneFilter* filter, float64 val) {
     }
 
     // 动态调整阈值
-    DeadZoneFilterAdjustDeviation(filter);
+    if (filter->adaptive) {
+        DeadZoneFilterAdjustDeviation(filter);
+    }
 
     return shouldKeep;
 }
@@ -106,6 +111,7 @@ typedef struct {
     float64 targetRatioLowerBound;
     float64 targetRatioUpperBound;
     float64 adjustFactor;           // 调整系数（默认 0.05）
+    bool adaptive;                  // 自适应调整精度
     CircularBitmap bitmap;          // 记录最近 10R 个数据的过滤情况, 1 为保留，0 为丢弃
 
     float64 delta;                  // 门限宽度
@@ -121,7 +127,8 @@ typedef struct {
 void SDTFilterInit(
     SDTFilter* filter,
     float64 targetRatio,
-    float64 initDelta
+    float64 initDelta,
+    bool adaptive
 ) {
     Assert(targetRatio >= 5);
     Assert(initDelta > 0);
@@ -133,6 +140,7 @@ void SDTFilterInit(
     CircularBitmapInit(&filter->bitmap, (int)(10 * targetRatio));
 
     filter->delta = initDelta;
+    filter->adaptive = adaptive;
 }
 
 void SDTFilterFini(SDTFilter* filter) {
@@ -204,7 +212,9 @@ bool SDTFilterShouldKeepPoint(SDTFilter* filter, DataPoint point) {
 
         if (filter->dk <= filter->uk) {
             shouldKeep = true;
-            SDTFilterAdjustDelta(filter);
+            if (filter->adaptive) {
+                SDTFilterAdjustDelta(filter);
+            }
             SDTFilterInitDoor(filter, point);
         }
     }
@@ -241,7 +251,7 @@ int readDataPointFromFile(FILE *pFile, DataPoint *dp) {
     return OK;
 }
 
-int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
+int lossyCompressFile(const char *filePath, const char *pAlgo, float rate, bool adaptive) {
     int rc = OK;
 
     FILE *pFile = fopen(filePath, "r");
@@ -254,7 +264,7 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
     if (strcmp(pAlgo, "deadzone") == 0) {
         DataPoint dp = { };
         DeadZoneFilter filter = {};
-        DeadZoneFilterInit(&filter, rate, 1.0);
+        DeadZoneFilterInit(&filter, rate, 1.0, adaptive);
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (DeadZoneFilterShouldKeepPoint(&filter, dp.value)) {
@@ -266,7 +276,7 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
     } else if (strcmp(pAlgo, "sdt") == 0) {
         DataPoint dp = { };
         SDTFilter filter = {};
-        SDTFilterInit(&filter, rate, 1.0);
+        SDTFilterInit(&filter, rate, 1.0, adaptive);
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (SDTFilterShouldKeepPoint(&filter, dp)) {
