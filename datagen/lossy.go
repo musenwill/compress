@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -92,5 +93,50 @@ func lossyExtract(c *cli.Context) error {
 		group.Dump(outColFile)
 	}
 
+	return nil
+}
+
+func lossySeries(c *cli.Context) error {
+	outFile := c.GlobalString(outPath.Name)
+	num := c.Int(numFlag.Name)
+	start := c.Int64(startFlag.Name)
+	funcArg := c.Int64(funcArgFlag.Name)
+	funcStr := c.String(funcFlag.Name)
+
+	if len(outFile) <= 0 {
+		return fmt.Errorf("output file required")
+	}
+
+	fd, err := os.Create(outFile)
+	if err != nil {
+		log.Fatalf("failed create file %s, %s", outFile, err)
+	}
+	defer fd.Close()
+
+	ts := 1
+	for range num {
+		var val float64
+		switch funcStr {
+		case "linear":
+			val = float64(start)
+			start += funcArg
+		case "square":
+			val = float64(start * start)
+			start++
+		case "pow":
+			val = math.Pow(float64(start), float64(funcArg))
+			start++
+		case "sin":
+			val = 10000 * math.Sin(float64(start)) / 1000
+			start++
+		default:
+			return fmt.Errorf("unsupported func name %s", funcStr)
+		}
+		_, err = fmt.Fprintf(fd, "%v    %v\n", ts, val)
+		if err != nil {
+			log.Fatalf("failed write file %s, %s", outFile, err)
+		}
+		ts++
+	}
 	return nil
 }

@@ -128,40 +128,58 @@ func New() *cli.App {
 	app.Flags = []cli.Flag{outPath}
 	app.Commands = []cli.Command{
 		{
-			Name:   "extract",
-			Usage:  "extract column data from csv file",
-			Flags:  []cli.Flag{csvPath, colIdx, colType, isRaw},
-			Action: extract,
+			Name:  "lossless",
+			Usage: "lossless compression",
+			Subcommands: []cli.Command{
+				{
+					Name:   "extract",
+					Usage:  "extract column data from csv file",
+					Flags:  []cli.Flag{csvPath, colIdx, colType, isRaw},
+					Action: extract,
+				},
+				{
+					Name:   "random",
+					Usage:  "generate values randomly",
+					Flags:  []cli.Flag{numFlag, minFlag, maxFlag},
+					Action: random,
+				},
+				{
+					Name:   "repeat",
+					Usage:  "generate values with many repeats",
+					Flags:  []cli.Flag{numFlag, minFlag, maxFlag, repeatFlag, repeatValFlag},
+					Action: repeat,
+				},
+				{
+					Name:   "series",
+					Usage:  "generate series by math function",
+					Flags:  []cli.Flag{numFlag, startFlag, funcFlag, funcArgFlag},
+					Action: series,
+				},
+				{
+					Name:   "cluster",
+					Usage:  "generate values moustly clustered in a small section",
+					Flags:  []cli.Flag{numFlag, minFlag, maxFlag, subnumFlag, subminFlag, submaxFlag},
+					Action: cluster,
+				},
+			},
 		},
 		{
-			Name:   "lossy",
-			Usage:  "extract timestamp and number data from csv file for lossy compress",
-			Flags:  []cli.Flag{csvPath, tsIdx, tgIdx, fdIdx},
-			Action: lossyExtract,
-		},
-		{
-			Name:   "random",
-			Usage:  "generate values randomly",
-			Flags:  []cli.Flag{numFlag, minFlag, maxFlag},
-			Action: random,
-		},
-		{
-			Name:   "repeat",
-			Usage:  "generate values with many repeats",
-			Flags:  []cli.Flag{numFlag, minFlag, maxFlag, repeatFlag, repeatValFlag},
-			Action: repeat,
-		},
-		{
-			Name:   "series",
-			Usage:  "generate series by math function",
-			Flags:  []cli.Flag{numFlag, startFlag, funcFlag, funcArgFlag},
-			Action: series,
-		},
-		{
-			Name:   "cluster",
-			Usage:  "generate values moustly clustered in a small section",
-			Flags:  []cli.Flag{numFlag, minFlag, maxFlag, subnumFlag, subminFlag, submaxFlag},
-			Action: cluster,
+			Name:  "lossy",
+			Usage: "lossy compression",
+			Subcommands: []cli.Command{
+				{
+					Name:   "extract",
+					Usage:  "extract timestamp and number data from csv file",
+					Flags:  []cli.Flag{csvPath, tsIdx, tgIdx, fdIdx},
+					Action: lossyExtract,
+				},
+				{
+					Name:   "series",
+					Usage:  "generate series by math function",
+					Flags:  []cli.Flag{numFlag, startFlag, funcFlag, funcArgFlag},
+					Action: lossySeries,
+				},
+			},
 		},
 	}
 
