@@ -24,6 +24,7 @@ int main(int argc, char **ppArgv) {
     if (argc >= 4) {
         algo = ppArgv[3];
     }
+    bool 
 
     if (isLossyAlgorithm(algo)) {
         int rate = atoi(dataType);

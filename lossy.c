@@ -129,7 +129,7 @@ void SDTFilterInit(
     filter->targetRatio = targetRatio;
     filter->targetRatioLowerBound = targetRatio * (1 - filter->adjustFactor);
     filter->targetRatioUpperBound = targetRatio * (1 + filter->adjustFactor);
-    filter->adjustFactor = CMPR_RATE_ADJUST_FACTOR; // 默认每次调整±5%
+    filter->adjustFactor = 0.1;
     CircularBitmapInit(&filter->bitmap, (int)(10 * targetRatio));
 
     filter->delta = initDelta;
@@ -143,8 +143,8 @@ bool SDTFilterIsEmpty(SDTFilter* filter) {
     return CircularBitmapIsEmpty(&filter->bitmap);
 }
 
-bool SDTFilterCanCalcCmprRate(SDTFilter* filter) {
-    return 10 * filter->bitmap.len >= filter->bitmap.capacity;
+bool SDTFilterIsFull(SDTFilter* filter) {
+    return filter->bitmap.len >= filter->bitmap.capacity;
 }
 
 float64 SDTFilterCurrentCmprRate(SDTFilter* filter) {
@@ -165,7 +165,7 @@ void SDTFilterInitDoor(SDTFilter* filter, DataPoint point) {
 }
 
 void SDTFilterAdjustDelta(SDTFilter* filter) {
-    if (!SDTFilterCanCalcCmprRate(filter)) {
+    if (!SDTFilterIsFull(filter)) {
         return;
     }
 
@@ -177,6 +177,7 @@ void SDTFilterAdjustDelta(SDTFilter* filter) {
         // 压缩过度：增加阈值
         filter->delta *= (1.0 + filter->adjustFactor);
     }
+    SDTFilterInitDoor(filter, filter->lastHandlePoint);
 }
 
 bool SDTFilterShouldKeepPoint(SDTFilter* filter, DataPoint point) {
@@ -257,7 +258,7 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (DeadZoneFilterShouldKeepPoint(&filter, dp.value)) {
-                printf("%s\n", dp.originLine);
+                printf("%s    %f\n", dp.originLine, filter.currentDeviation);
             }
         }
 
@@ -265,11 +266,11 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate) {
     } else if (strcmp(pAlgo, "sdt") == 0) {
         DataPoint dp = { };
         SDTFilter filter = {};
-        SDTFilterInit(&filter, rate, 0.01);
+        SDTFilterInit(&filter, rate, 1.0);
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (SDTFilterShouldKeepPoint(&filter, dp)) {
-                printf("%s\n", dp.originLine);
+                printf("%s    %f\n", dp.originLine, filter.delta);
             }
         }
 
