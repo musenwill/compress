@@ -1,0 +1,35 @@
+./compress linear.txt 10 dzc 1 > linear_dzc_delta1.txt
+python3 report.py linear_dzc_delta1.png linear.txt linear_dzc_delta1.txt
+
+./compress linear.txt 10 sdt 1 > linear_sdt_delta1.txt
+python3 report.py linear_sdt_delta1.png linear.txt linear_sdt_delta1.txt
+
+./compress pow.txt 10 dzc 100 > pow_dzc_delta100.txt
+python3 report.py pow_dzc_delta100.png pow.txt pow_dzc_delta100.txt
+
+./compress pow.txt 10 sdt 1 > pow_sdt_delta1.txt
+python3 report.py pow_sdt_delta1.png pow.txt pow_sdt_delta1.txt
+
+./compress sin.txt 10 dzc 1 > sin_dzc_delta1.txt
+python3 report.py sin_dzc_delta1.png sin.txt sin_dzc_delta1.txt
+
+./compress sin.txt 10 sdt 1 > sin_sdt_delta1.txt
+python3 report.py sin_sdt_delta1.png sin.txt sin_sdt_delta1.txt
+
+./compress sin1.txt 10 dzc 1 > sin1_dzc_delta1.txt
+python3 report.py sin1_dzc_delta1.png sin1.txt sin1_dzc_delta1.txt
+
+./compress sin1.txt 10 sdt 1 > sin1_sdt_delta1.txt
+python3 report.py sin1_sdt_delta1.png sin1.txt sin1_sdt_delta1.txt
+
+./compress sin1.txt 10 dzc 0.2 > sin1_dzc_delta02.txt
+python3 report.py sin1_dzc_delta02.png sin1.txt sin1_dzc_delta02.txt
+
+./compress sin1.txt 10 sdt 0.2 > sin1_sdt_delta02.txt
+python3 report.py sin1_sdt_delta02.png sin1.txt sin1_sdt_delta02.txt
+
+./compress sin1.txt 10 dzc 0.05 > sin1_dzc_delta005.txt
+python3 report.py sin1_dzc_delta005.png sin1.txt sin1_dzc_delta005.txt
+
+./compress sin1.txt 10 sdt 0.05 > sin1_sdt_delta005.txt
+python3 report.py sin1_sdt_delta005.png sin1.txt sin1_sdt_delta005.txt

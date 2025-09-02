@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"sort"
@@ -99,7 +100,7 @@ func lossyExtract(c *cli.Context) error {
 func lossySeries(c *cli.Context) error {
 	outFile := c.GlobalString(outPath.Name)
 	num := c.Int(numFlag.Name)
-	start := c.Int64(startFlag.Name)
+	start := float64(c.Int64(startFlag.Name))
 	funcArg := c.Int64(funcArgFlag.Name)
 	funcStr := c.String(funcFlag.Name)
 
@@ -118,8 +119,8 @@ func lossySeries(c *cli.Context) error {
 		var val float64
 		switch funcStr {
 		case "linear":
-			val = float64(start)
-			start += funcArg
+			val = start
+			start += rand.Float64() * 2 * float64(funcArg)
 		case "square":
 			val = float64(start * start)
 			start++
@@ -127,7 +128,7 @@ func lossySeries(c *cli.Context) error {
 			val = math.Pow(float64(start), float64(funcArg))
 			start++
 		case "sin":
-			val = 10000 * math.Sin(float64(start)) / 1000
+			val = 10000 * math.Sin(float64(start)/1000) / 1000
 			start++
 		default:
 			return fmt.Errorf("unsupported func name %s", funcStr)

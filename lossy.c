@@ -225,7 +225,7 @@ bool SDTFilterShouldKeepPoint(SDTFilter* filter, DataPoint point) {
 }
 
 bool isLossyAlgorithm(const char *pAlgo) {
-    if ((strcmp(pAlgo, "deadzone") != 0) && (strcmp(pAlgo, "sdt") != 0)) {
+    if ((strcmp(pAlgo, "dzc") != 0) && (strcmp(pAlgo, "sdt") != 0)) {
         return false;
     }
     return true;
@@ -251,7 +251,7 @@ int readDataPointFromFile(FILE *pFile, DataPoint *dp) {
     return OK;
 }
 
-int lossyCompressFile(const char *filePath, const char *pAlgo, float rate, bool adaptive) {
+int lossyCompressFile(const char *filePath, const char *pAlgo, float64 rate, float64 delta, bool adaptive) {
     int rc = OK;
 
     FILE *pFile = fopen(filePath, "r");
@@ -261,10 +261,10 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate, bool 
         goto l_end;
     }
 
-    if (strcmp(pAlgo, "deadzone") == 0) {
+    if (strcmp(pAlgo, "dzc") == 0) {
         DataPoint dp = { };
         DeadZoneFilter filter = {};
-        DeadZoneFilterInit(&filter, rate, 1.0, adaptive);
+        DeadZoneFilterInit(&filter, rate, delta, adaptive);
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (DeadZoneFilterShouldKeepPoint(&filter, dp.value)) {
@@ -276,7 +276,7 @@ int lossyCompressFile(const char *filePath, const char *pAlgo, float rate, bool 
     } else if (strcmp(pAlgo, "sdt") == 0) {
         DataPoint dp = { };
         SDTFilter filter = {};
-        SDTFilterInit(&filter, rate, 1.0, adaptive);
+        SDTFilterInit(&filter, rate, delta, adaptive);
 
         while (readDataPointFromFile(pFile, &dp) >= 0) {
             if (SDTFilterShouldKeepPoint(&filter, dp)) {

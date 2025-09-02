@@ -43,26 +43,23 @@ for f in files:
         tsdatas.append(tsdata)
 
 colors = ['blue', 'red', 'green']
-plt.subplot(2,1,1)
-plt.figure(figsize=(120, 90), dpi=256)
+plt.subplot(len(tsdatas) + 1, 1, 1)
+plt.figure(figsize=(120, 35 * (len(tsdatas) + 1)), dpi=256)
 
-plt.subplot(2,1,1)
+picIdx = 1
+for tsdata in tsdatas:
+    plt.subplot(len(tsdatas) + 1, 1, picIdx)
+    plt.plot(tsdata['timestamp'], tsdata['tsfield'], colors[picIdx-1])
+    plt.title("picture-" + str(picIdx))
+    plt.legend("_")
+    picIdx += 1
+
+plt.subplot(len(tsdatas) + 1, 1, picIdx)
 datasetCount = 0
 for tsdata in tsdatas:
     plt.plot(tsdata['timestamp'], tsdata['tsfield'], color=colors[datasetCount])
     datasetCount += 1
 plt.title("lossy compress")
-plt.legend("_")
-
-plt.subplot(2,1,2)
-datasetCount = 0
-for tsdata in tsdatas:
-    if datasetCount <= 0:
-        datasetCount += 1
-        continue
-    plt.plot(tsdata['timestamp'], tsdata['delta'], color=colors[datasetCount])
-    datasetCount += 1
-plt.title("delta")
 plt.legend("_")
 
 outfile = sys.argv[1]

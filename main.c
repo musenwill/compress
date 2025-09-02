@@ -6,6 +6,28 @@
 
 void helper() {
     printf("usage: compress filepath datatype [algorithm]\n");
+    printf("usage: compress filepath rate algorithm delta [adaptive]\n");
+}
+
+int lossyCompress(int argc, char **ppArgv) {
+    char *filepath = ppArgv[1];
+    int rate = atoi(ppArgv[2]);
+    char *algo = ppArgv[3];
+    float64 delta = atof(ppArgv[4]);
+    bool adaptive = false;
+    if (argc >= 6 && strcmp(ppArgv[5], "adaptive") == 0) {
+        adaptive = true;
+    }
+
+    return lossyCompressFile(filepath, algo, (float64)rate, delta, adaptive);
+}
+
+int losslessCompress(int argc, char **ppArgv) {
+    char *filepath = ppArgv[1];
+    char *datatype = ppArgv[2];
+    char *algo = ppArgv[3];
+
+    return compressFile(filepath, algo, datatype);
 }
 
 int main(int argc, char **ppArgv) {
@@ -14,25 +36,17 @@ int main(int argc, char **ppArgv) {
         return OK;
     }
 
-    if (argc < 3) {
+    if (argc < 4) {
         helper();
         return ERR;
     }
-    char *filepath = ppArgv[1];
-    char *dataType = ppArgv[2];
-    char *algo = NULL;
-    if (argc >= 4) {
-        algo = ppArgv[3];
-    }
-    bool adaptive = false;
-    if (argc >= 5 && strcmp(ppArgv[4], "adaptive") == 0) {
-        adaptive = true;
-    }
+
+    char *algo = ppArgv[3];
 
     if (isLossyAlgorithm(algo)) {
-        int rate = atoi(dataType);
-        return lossyCompressFile(filepath, algo, (float64)rate, adaptive);
+        return lossyCompress(argc, ppArgv);
     } else {
-        return compressFile(filepath, algo, dataType);
+        return losslessCompress(argc, ppArgv);
     }
+
 }
