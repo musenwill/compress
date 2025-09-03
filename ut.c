@@ -299,6 +299,11 @@ void Test() {
         runCase("rle", 1, origin, sizeof(origin), compressed, sizeof(compressed));
     }
     {
+        byte origin[12] = {0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE};
+        byte compressed[] = {0xFE, 0xFE, 0xFE, 0xFE, 3};
+        runCase("rle", 4, origin, sizeof(origin), compressed, sizeof(compressed));
+    }
+    {
         byte origin[8] = {1, -2, 3, -4, 5, -6, 7, -8};
         byte compressed[8] = {2, 3, 6, 7, 10, 11, 14, 15};
         runCase("zigzag", 1, origin, sizeof(origin), compressed, sizeof(compressed));
